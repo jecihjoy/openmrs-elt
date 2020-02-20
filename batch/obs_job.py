@@ -7,9 +7,8 @@ from pyspark.sql import SQLContext, Window, SparkSession
 from pyspark import StorageLevel
 from pyspark.sql.types import StructType, StringType, StructField, BooleanType, IntegerType, ArrayType, TimestampType, DoubleType
 import pyspark.sql.functions as f
-from pyspark import StorageLevel
 
-from job import Job
+from batch.job import Job
 
 
 class ObsJob(Job):
@@ -20,7 +19,7 @@ class ObsJob(Job):
     
     def build_obs(self):
         print('Computing Obs ...')
-        concept = super().getDataFromMySQL('amrs', 'concept', {
+        concept = super().getDataFromMySQL('concept', {
                 'partitionColumn': 'concept_id', 
                 'fetchsize':1000,
                 'lowerBound': 1,
@@ -30,7 +29,7 @@ class ObsJob(Job):
         .select('concept_id', 'uuid')\
         .withColumnRenamed('uuid', 'concept_uuid')
     
-        concept_names = super().getDataFromMySQL('amrs', 'concept_name', {
+        concept_names = super().getDataFromMySQL('concept_name', {
                 'partitionColumn': 'concept_id', 
                 'fetchsize':15000,
                 'lowerBound': 1,
@@ -39,7 +38,7 @@ class ObsJob(Job):
         .filter(f.col('locale_preferred') == 1)\
         .select('concept_id', 'name')
         
-        drug = super().getDataFromMySQL('amrs', 'drug', {
+        drug = super().getDataFromMySQL('drug', {
                 'partitionColumn': 'drug_id', 
                 'fetchsize':15000,
                 'lowerBound': 1,
@@ -50,7 +49,7 @@ class ObsJob(Job):
         concept_with_names = concept.join(concept_names, 'concept_id').cache()
         
         
-        parent_obs = super().getDataFromMySQL('test', 'obs_view', {
+        parent_obs = super().getDataFromMySQL('obs_view', {
                 'partitionColumn': 'obs_id', 
                 'fetchsize':35000,
                 'lowerBound': 10000,
@@ -72,7 +71,7 @@ class ObsJob(Job):
                         .withColumnRenamed('name', 'parent_obs_concept_name')\
                         .withColumnRenamed('concept_uuid', 'parent_obs_concept_uuid')
         
-        child_obs = super().getDataFromMySQL('test', 'obs_view', {
+        child_obs = super().getDataFromMySQL('obs_view', {
                 'partitionColumn': 'obs_group_id', 
                 'fetchsize':35000,
                 'lowerBound': 1000000,

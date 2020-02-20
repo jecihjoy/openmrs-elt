@@ -1,9 +1,36 @@
-# poc-amrs-offline-pyspark-scripts
-Scripts to build and sync offline data using PySpark and Apache Airflow
+# Openmrs ELT Pipeline
 
-Clone this repo and run `docker-compose up -d` to start the containers. Two containers will start:
-1 Airflow Container - Based on an image that contains both Apache Airflow and Spark
-2 Postgres Container - Responsible for saving workflows metadata for Apache Airflow
+This projet demonstrates how to perform batch process for generating flat_obs i.e Extract part ofr ELT. Data is extracted from openmrs and storerd in delta lake i.e flat_obs
 
-The spark folder contains the python scripts that build and stream data with Apache Spark, while the airflow/dags contain
-the scheduling code for the scripts to run.
+## Getting started
+
+### 1. Install Pyspark
+```
+conda install pyspark
+
+```
+
+### 2. Configure your Mysql setting in config/config.json
+```
+"mysql": {
+    "host": "127.0.0.1",
+    "port": "3306",
+    "username": "root",
+    "password": "debezium",
+    "openmrsDB": "openmrs"
+  }
+
+```
+
+### 3. Create all mysql views by executing mysql scripts in /views folder. for this demo just execute obs_view.sql
+
+```
+mysql db_name < obs_view.sql
+```
+
+### 4. Execute the batch job as demonstrated in [Jupyter notebook](example.ipynb)
+
+```
+jupyter notebook example.ipynb
+```
+

@@ -10,65 +10,15 @@ from pyspark.sql.types import StructType, StringType, StructField, BooleanType, 
 from pyspark import SparkContext
 import pyspark.sql.functions as f
 
-from obs_job import ObsJob 
-from job import Job
-from config.config import getConfig
+from batch.obs_job import ObsJob 
+from batch.job import Job
 
-
-import os
-spark_submit_str = ('--driver-memory 45g --executor-memory 3g --packages org.apache.spark:spark-sql_2.11:2.4.0,org.apache.bahir:spark-sql-cloudant_2.11:2.3.2'
-                    ' --driver-class-path /home/jovyan/jars/mysql-connector-java-5.1.42-bin.jar' 
-                    ' --jars /home/jovyan/jars/spark-cassandra-connector.jar,/home/jovyan/jars/mysql-connector-java-5.1.42-bin.jar'
-                    ' pyspark-shell')
-
-os.environ['PYSPARK_SUBMIT_ARGS'] = spark_submit_str
-
-
-config = getConfig()
-def save_to_cassandra(df, table):
-             df.write.format("org.apache.spark.sql.cassandra")\
-                    .options(table=table, keyspace="amrs")\
-                    .mode("append")\
-                    .save()
-            
-             print("Finished loading to cassandra" + time.ctime()) 
-
-
-# In[4]:
-
-
-spark = SparkSession.builder\
-.config('spark.sql.repl.eagerEval.enabled', True)\
-    .config('cloudant.host', config['couch']['host'])\
-        .config('cloudant.username', config['couch']['username'])\
-            .config('cloudant.password', config['couch']['username'])\
-                .config('cloudant.protocol', config['couch']['protocol'])\
-                    .config('spark.rdd.compress', True)\
-                        .config('spark.sql.crossJoin.enabled', True)\
-                            .config("jsonstore.rdd.maxInPartition", 500).\
-                                config("jsonstore.rdd.minInPartition", 1000)\
-                                    .config("cloudant.useQuery", "true")\
-                                        .config("jsonstore.rdd.requestTimeout", 90000000)\
-                                            .config("spark.sql.shuffle.partitions", 1000)\
-                                                .config("schemaSampleSize",1)\
-                                                    .getOrCreate()
-spark.sparkContext.setLogLevel('INFO')
-
-
-# In[5]:
+spark = Job.getSpark()
 
 class EncounterJob(Job):
-        def saveToCouchDB(self, dataframe, database):
-            dataframe.write.save(database,"org.apache.bahir.cloudant",
-                                  bulkSize="800", createDBOnSave="false")
-
-
-        
-        # In[7]:
-
 
         def get_provider(self):
-                provider = super().getDataFromMySQL('amrs', 'provider', {
+                provider = super().getDataFromMySQL('provider', {
                     'partitionColumn': 'provider_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -79,7 +29,7 @@ class EncounterJob(Job):
                 .withColumnRenamed('identifier', 'provider_identifier')\
                 .alias('provider')
 
-                person = super().getDataFromMySQL('amrs', 'person_name', {
+                person = super().getDataFromMySQL('person_name', {
                     'partitionColumn': 'person_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -97,7 +47,7 @@ class EncounterJob(Job):
 
 
         def get_encounter_providers(self):
-                encounter_provider = super().getDataFromMySQL('amrs', 'encounter_provider', {
+                encounter_provider = super().getDataFromMySQL('encounter_provider', {
                     'partitionColumn': 'provider_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -119,7 +69,7 @@ class EncounterJob(Job):
 
 
         def get_encounter_types(self):
-            encounter_type = super().getDataFromMySQL('amrs', 'encounter_type', {
+            encounter_type = super().getDataFromMySQL('encounter_type', {
                     'partitionColumn': 'encounter_type_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -136,7 +86,7 @@ class EncounterJob(Job):
 
 
         def get_forms(self):
-            forms = super().getDataFromMySQL('amrs', 'form', {
+            forms = super().getDataFromMySQL('form', {
                     'partitionColumn': 'form_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -153,7 +103,7 @@ class EncounterJob(Job):
 
 
         def get_locations(self):
-            location = super().getDataFromMySQL('amrs', 'location', {
+            location = super().getDataFromMySQL('location', {
                     'partitionColumn': 'location_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -170,7 +120,7 @@ class EncounterJob(Job):
 
 
         def get_visits(self):
-            visit = super().getDataFromMySQL('amrs', 'visit', {
+            visit = super().getDataFromMySQL('visit', {
                     'partitionColumn': 'visit_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -179,7 +129,7 @@ class EncounterJob(Job):
             .select('uuid', 'date_started', 'date_stopped', 'visit_type_id', 'visit_id', 'location_id')\
             .withColumnRenamed('uuid', 'visit_uuid')
 
-            visit_type = super().getDataFromMySQL('amrs', 'visit_type', {
+            visit_type = super().getDataFromMySQL('visit_type', {
                     'partitionColumn': 'visit_type_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -201,7 +151,7 @@ class EncounterJob(Job):
 
 
         def get_patients(self):
-            person = super().getDataFromMySQL('amrs', 'person', {
+            person = super().getDataFromMySQL('person', {
                     'partitionColumn': 'person_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -210,7 +160,7 @@ class EncounterJob(Job):
             .select('uuid', 'person_id')\
             .withColumnRenamed('uuid', 'person_uuid')
 
-            patient = super().getDataFromMySQL('amrs', 'patient', {
+            patient = super().getDataFromMySQL('patient', {
                     'partitionColumn': 'patient_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -226,7 +176,7 @@ class EncounterJob(Job):
 
 
         def get_encounters(self):
-            encounters = super().getDataFromMySQL('amrs', 'encounter', {
+            encounters = super().getDataFromMySQL('encounter', {
                     'partitionColumn': 'encounter_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -241,7 +191,7 @@ class EncounterJob(Job):
 
 
         def get_concepts(self):
-            concepts = super().getDataFromMySQL('amrs', 'concept', {
+            concepts = super().getDataFromMySQL('concept', {
                     'partitionColumn': 'concept_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -250,7 +200,7 @@ class EncounterJob(Job):
             .select('uuid', 'concept_id')\
             .withColumnRenamed('uuid', 'concept_uuid')
 
-            concept_names = super().getDataFromMySQL('amrs', 'concept_name', {
+            concept_names = super().getDataFromMySQL('concept_name', {
                     'partitionColumn': 'concept_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -267,7 +217,7 @@ class EncounterJob(Job):
 
 
         def get_orders(self):
-            orders = super().getDataFromMySQL('amrs', 'orders', {
+            orders = super().getDataFromMySQL('orders', {
                     'partitionColumn': 'encounter_id', 
                     'fetchsize':4566,
                     'lowerBound': 1,
@@ -279,7 +229,7 @@ class EncounterJob(Job):
                     'urgency', 'order_type_id', 'order_number')\
             .withColumnRenamed('uuid', 'order_uuid')
 
-            order_type = super().getDataFromMySQL('amrs', 'order_type', {
+            order_type = super().getDataFromMySQL('order_type', {
                 'partitionColumn': 'order_type_id', 
                 'fetchsize':4566,
                 'lowerBound': 1,
@@ -412,6 +362,7 @@ class EncounterJob(Job):
         # In[19]:
 
         def run(self):
+            start = time.time()
             ### build obs first
             obs = ObsJob().build_obs()
 
@@ -435,5 +386,10 @@ class EncounterJob(Job):
             .drop('enc_provider.encounter_id', 'obs.encounter_id', 'orders.encounter_id')
 
             openmrs_encounter_object = self.transform_into_openmrs_object(joined_encounters)
+
+            end = time.time()
+            print("Encounter Batch Job took %.2f seconds" % (end - start))
+           
+
             return openmrs_encounter_object
 
