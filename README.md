@@ -33,4 +33,11 @@ mysql db_name < obs_view.sql
 ```
 jupyter notebook example.ipynb
 ```
+ Alternatively you can execute the main.py script
+
+ ```
+python3 main.py
+
+```
+
 

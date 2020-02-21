@@ -1,7 +1,7 @@
 notebooks/
 unused/
 
-config.json
+
 .ipynb_checkpoints/
 __pycache__/
 checkpoints
