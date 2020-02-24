@@ -11,7 +11,7 @@ def main():
   job = EncounterJob()
   flat_obs = job.run()
   print(flat_obs.head())
-  flat_obs.write.format("delta").save("flat_obs")
+  flat_obs.write.format("delta").save("flat_obs.delta")
   
 if __name__== "__main__":
   main()
