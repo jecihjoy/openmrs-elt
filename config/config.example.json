@@ -1,22 +1,24 @@
 {
   "spark": {
-    "app_name": "Openmrs ELT Pipeline",
+    "app_name": "OpenMRS ELT Pipeline",
     "master": "local[*]",
     "packages": [
-      "mysql:mysql-connector-java:5.1.46",
+      "mysql:mysql-connector-java:8.0.19",
       "io.delta:delta-core_2.11:0.5.0",
       "org.apache.spark:spark-sql_2.11:2.4.0"
     ],
     "conf": {
-      "executor.memory": "10g",
-      "driver.memory": "20g"
+      "executor.memory": "5g",
+      "driver.memory": "30g"
     }
   },
   "mysql": {
-    "host": "127.0.0.1",
+    "host": "localhost",
     "port": "3306",
-    "username": "root",
-    "password": "debezium",
+    "username": "xxxxx",
+    "password": "xxxx",
     "openmrsDB": "openmrs"
   }
+
+
 }

@@ -1,395 +1,147 @@
-
 # coding: utf-8
 
-# In[1]:
-import datetime
 import time
-
+from datetime import datetime
 from pyspark.sql import SparkSession, Row, SQLContext, Window
-from pyspark.sql.types import StructType, StringType, StructField, BooleanType, IntegerType, ArrayType, TimestampType, DoubleType
+from pyspark.sql.types import StructType, StringType, StructField, BooleanType, IntegerType, ArrayType, TimestampType, \
+    DoubleType
 from pyspark import SparkContext
 import pyspark.sql.functions as f
-
-from batch.obs_job import ObsJob 
-from batch.job import Job
-
-spark = Job.getSpark()
-
-class EncounterJob(Job):
-
-        def get_provider(self):
-                provider = super().getDataFromMySQL('provider', {
-                    'partitionColumn': 'provider_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 45000000,
-                    'numPartitions': 200})\
-                .select('uuid', 'identifier', 'provider_id', 'person_id')\
-                .withColumnRenamed('uuid', 'provider_uuid')\
-                .withColumnRenamed('identifier', 'provider_identifier')\
-                .alias('provider')
-
-                person = super().getDataFromMySQL('person_name', {
-                    'partitionColumn': 'person_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 45000000,
-                    'numPartitions': 200})\
-                .select('given_name', 'family_name', 'middle_name', 'person_id')\
-                .alias('person_name')
-
-                return provider.join(person, on='person_id', how='left')\
-                               .withColumn('provider_name', f.concat_ws(' ', f.col('given_name'),  f.col('middle_name'), f.col('family_name')))\
-                               .drop('given_name', 'family_name', 'middle_name')
-
-
-        # In[8]:
-
-
-        def get_encounter_providers(self):
-                encounter_provider = super().getDataFromMySQL('encounter_provider', {
-                    'partitionColumn': 'provider_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 45000000,
-                    'numPartitions': 450})\
-                .select('uuid', 'encounter_id', 'provider_id')\
-                .withColumnRenamed('uuid', 'encounter_provider_uuid')\
-                .alias('enc_provider')
-
-                provider = self.get_provider()
-
-
-                return encounter_provider.join(provider, 'provider_id')
-
-
-
-
-        # In[9]:
-
-
-        def get_encounter_types(self):
-            encounter_type = super().getDataFromMySQL('encounter_type', {
-                    'partitionColumn': 'encounter_type_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 10000,
-                    'numPartitions': 1})\
-            .select('uuid', 'name', 'encounter_type_id')\
-            .withColumnRenamed('uuid', 'encounter_type_uuid')\
-            .withColumnRenamed('name', 'encounter_type_name')
-
-            return encounter_type
-
-
-        # In[10]:
-
-
-        def get_forms(self):
-            forms = super().getDataFromMySQL('form', {
-                    'partitionColumn': 'form_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 10000,
-                    'numPartitions': 10})\
-            .select('form_id', 'uuid', 'name')\
-            .withColumnRenamed('uuid', 'form_uuid')\
-            .withColumnRenamed('name', 'form_name')
-
-            return forms
-
-
-        # In[11]:
-
-
-        def get_locations(self):
-            location = super().getDataFromMySQL('location', {
-                    'partitionColumn': 'location_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 45000000,
-                    'numPartitions': 1})\
-            .select('uuid', 'name', 'location_id')\
-            .withColumnRenamed('uuid', 'location_uuid')\
-            .withColumnRenamed('name', 'location_name')
-
-            return location
-
-
-        # In[12]:
-
-
-        def get_visits(self):
-            visit = super().getDataFromMySQL('visit', {
-                    'partitionColumn': 'visit_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 45000000,
-                    'numPartitions': 100})\
-            .select('uuid', 'date_started', 'date_stopped', 'visit_type_id', 'visit_id', 'location_id')\
-            .withColumnRenamed('uuid', 'visit_uuid')
-
-            visit_type = super().getDataFromMySQL('visit_type', {
-                    'partitionColumn': 'visit_type_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 45000000,
-                    'numPartitions': 1})\
-            .select('uuid', 'name', 'visit_type_id')\
-            .withColumnRenamed('uuid', 'visit_type_uuid')\
-            .withColumnRenamed('name', 'visit_type_name')
-
-            locations = self.get_locations()
-
-            return visit.join(visit_type, on='visit_type_id')\
-                        .join(f.broadcast(locations), on='location_id')\
-                        .drop('visit_type_id', 'location_id')\
-                        .alias('visit')
-
-
-        # In[13]:
-
-
-        def get_patients(self):
-            person = super().getDataFromMySQL('person', {
-                    'partitionColumn': 'person_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 10000000,
-                    'numPartitions': 200})\
-            .select('uuid', 'person_id')\
-            .withColumnRenamed('uuid', 'person_uuid')
-
-            patient = super().getDataFromMySQL('patient', {
-                    'partitionColumn': 'patient_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 1000000,
-                    'numPartitions': 200})\
-            .select('patient_id')
-
-
-            return person.join(patient, on=f.col('person_id') == f.col('patient_id')).drop('person_id')
-
-
-        # In[14]:
-
-
-        def get_encounters(self):
-            encounters = super().getDataFromMySQL('encounter', {
-                    'partitionColumn': 'encounter_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 10000000,
-                    'numPartitions': 100})\
-                    .alias('encounter')
-
-            return encounters
-
-
-        # In[15]:
-
-
-        def get_concepts(self):
-            concepts = super().getDataFromMySQL('concept', {
-                    'partitionColumn': 'concept_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 20000,
-                    'numPartitions': 10})\
-            .select('uuid', 'concept_id')\
-            .withColumnRenamed('uuid', 'concept_uuid')
-
-            concept_names = super().getDataFromMySQL('concept_name', {
-                    'partitionColumn': 'concept_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 50000,
-                    'numPartitions': 10})\
-            .filter(f.col('locale_preferred') == 1)\
-            .select('name', 'concept_id')\
-            .withColumnRenamed('name', 'concept_name')
-
-            return concepts.join(concept_names, on='concept_id')
-
-
-        # In[16]:
-
-
-        def get_orders(self):
-            orders = super().getDataFromMySQL('orders', {
-                    'partitionColumn': 'encounter_id', 
-                    'fetchsize':4566,
-                    'lowerBound': 1,
-                    'upperBound': 10000000,
-                    'numPartitions': 200})\
-            .filter(f.col('voided') == 0)\
-            .select('uuid', 'encounter_id', 'concept_id', 'orderer',
-                    'order_action', 'date_activated', 'date_created',
-                    'urgency', 'order_type_id', 'order_number')\
-            .withColumnRenamed('uuid', 'order_uuid')
-
-            order_type = super().getDataFromMySQL('order_type', {
-                'partitionColumn': 'order_type_id', 
-                'fetchsize':4566,
-                'lowerBound': 1,
-                'upperBound': 100,
-                'numPartitions': 1})\
-            .select('order_type_id', 'name')\
-            .withColumnRenamed('name', 'order_type_name')
-
-            concepts = self.get_concepts()
-
-            orderer = self.get_provider()
-
-            return orders.join(f.broadcast(order_type), on='order_type_id')\
-                         .join(f.broadcast(concepts), on='concept_id')\
-                         .join(f.broadcast(orderer), on=orders['orderer'] == orderer['provider_id'])\
-                         .drop('concept_id', 'order_type_id')\
-                         .alias('orders')
-
-
-        # In[17]:
-
-
-        def get_obs(self):
-            return spark.read.format("org.apache.spark.sql.cassandra")\
-                            .options(table="obs", keyspace="amrs")\
-                            .load()\
-                            .alias('obs')
-
-
-        # In[18]:
-
-
-        def transform_into_openmrs_object(self, encounter_dataframe):
-            return encounter_dataframe.groupBy('encounter.encounter_id').agg(
-                f.first('patient_id').alias('person_id'),
-                f.lit('encounter').alias('type'),
-                f.first('encounter.location_id').alias('location_id'),
-                f.first('person_uuid').alias('person_uuid'),
-                f.col('encounter.encounter_id').cast('string').alias('couch_id'),
-                f.first('uuid').alias('uuid'),
-                f.first('encounter_datetime').alias('encounterdatetime'),
-                f.struct(
-                    f.first('encounter_type_name').alias('display'),
-                    f.first('encounter_type_uuid').alias('uuid')
-                ).alias('encountertype'),
-                f.struct(
-                    f.first('form_name').alias('name'),
-                    f.first('form_uuid').alias('uuid')
-                ).alias('form'),
-                f.struct(
-                    f.first('location.location_name').alias('display'),
-                    f.first('location.location_uuid').alias('uuid')                            
-                ).alias('location'),
-                f.to_json(f.collect_set(
-                    f.when(f.col('encounter_provider_uuid').isNotNull(), f.struct(
-                        f.col('encounter_provider_uuid').alias('uuid'),
-                        f.col('encounter_provider.provider_name').alias('display'),
-                        f.struct(
-                            f.col('encounter_provider.provider_uuid').alias('uuid'),
-                            f.concat_ws(' ', f.col('encounter_provider.provider_identifier'), f.lit('-'), f.col('encounter_provider.provider_name')).alias('display')
-                        ).alias('provider')
-                    ))
-                )).alias('encounterproviders'),
-                f.to_json(f.struct(
-                    f.first('visit_uuid').alias('uuid'),
-                    f.first('visit.date_started').alias('dateStarted'),
-                    f.first('visit.date_stopped').alias('dateStopped'),
-                    f.struct(
-                        f.first('visit_type_name').alias('name'),
-                        f.first('visit_type_uuid').alias('uuid')
-                    ).alias('visitType'),
-                    f.struct(
-                        f.first('visit.location_name').alias('name'),
-                        f.first('visit.location_uuid').alias('uuid')
-                    ).alias('location'),
-                    f.concat_ws(' ', f.first('visit_type_name'), f.lit('@'), f.first('visit.location_name'), f.lit('-'), f.first('visit.date_started'))
-                    .alias('display')
-                )).alias('visit'),
-                f.to_json(f.collect_set(
-                    f.when(f.col('order_uuid').isNotNull(),f.struct(
-                        f.col('order_uuid').alias('uuid'),
-                        f.col('order_number').alias('orderNumber'),
-                        f.struct(
-                            f.col('orders.concept_uuid').alias('uuid'),
-                            f.col('orders.concept_name').alias('display')
-                        ).alias('concept'),
-                        f.struct(
-                            f.col('orders.provider_uuid').alias('uuid'),
-                            f.concat_ws(' ', 'orders.provider_identifier', 'orders.provider_name').alias('display')
-                        ).alias('orderer'),
-                        f.col('order_action').alias('action'),
-                        f.col('orders.date_activated').alias('dateActivated'),
-                        f.col('orders.date_created').alias('dateCreated'),
-                        f.col('orders.urgency').alias('urgency'),
-                        f.col('order_type_name').alias('type')
+from batch.job import BatchJob
+
+
+class EncounterJob(BatchJob):
+
+    # responsible for ingesting obs with non-null encounters
+    def ingest_obs_with_encounter(self):
+        obs = super().getDataFromMySQL('obs_with_encounter', {
+            'partitionColumn': 'encounter_id',
+            'fetchsize': 100000,
+            'lowerBound': 1,
+            'upperBound': 8000000,
+            'numPartitions': 5000})
+        return self.sanitize_obs(obs)
+
+    # responsible for ingesting obs with null encounters
+    def ingest_obs_without_encounter(self):
+        obs = super().getDataFromMySQL('obs_with_null_encounter', {
+            'partitionColumn': 'obs_id',
+            'fetchsize': 65907,
+            'lowerBound': 1,
+            'upperBound': 270678501,
+            'numPartitions': 5000}) \
+            .withColumn('encounter_id', f.col('obs_id') + 100000000) \
+            .withColumn('order_id', f.lit('null')) \
+            .withColumn('order_concept_id', f.lit('null'))
+        return self.sanitize_obs(obs)
+
+    # responsible for ingesting orders
+    def ingest_orders(self):
+        orders = super().getDataFromMySQL('encounter_orders', {
+            'partitionColumn': 'order_id',
+            'fetchsize': 5083,
+            'lowerBound': 1,
+            'upperBound': 124000,
+            'numPartitions': 24})
+        return self.sanitize_orders(orders)
+
+    # TODO Remove all static methods into helper class | code could be reused in streaming-pipeline
+    # static method for restructuring  obs into expected format
+    @staticmethod
+    def sanitize_obs(obs):
+        return obs \
+            .withColumn('value',
+                        f.when(f.col('value_numeric').isNotNull(), f.col('value_numeric').cast('string')) \
+                        .when(f.col('value_text').isNotNull(), f.col('value_text')) \
+                        .when(f.col('value_drug').isNotNull(), f.col('value_drug')) \
+                        .when(f.col('value_datetime').isNotNull(), f.col('value_datetime').cast('string')) \
+                        .when(f.col('value_coded').isNotNull(), f.col('value_coded').cast('string'))
+                        ) \
+            .withColumn('value_type',
+                        f.when(f.col('value_numeric').isNotNull(), f.lit('numeric')) \
+                        .when(f.col('value_text').isNotNull(), f.lit('text')) \
+                        .when(f.col('value_drug').isNotNull(), f.lit('drug')) \
+                        .when(f.col('value_datetime').isNotNull(), f.lit('datetime')) \
+                        .when(f.col('value_coded').isNotNull(), f.lit('coded'))) \
+            .orderBy('encounter_datetime').groupBy('encounter_id') \
+            .agg(
+                f.first('patient_id').alias('patient_id'),
+                f.first('location_id').alias('location_id'),
+                f.first('visit_id').alias('visit_id'),
+                f.first('encounter_datetime').alias('encounter_datetime'),
+                f.first('encounter_type').alias('encounter_type'),
+                f.first('gender').alias('gender'),
+                f.first('dead').alias('dead'),
+                f.first('death_date').alias('death_date'),
+                f.first('uuid').alias('patient_uuid'),
+                f.first('visit_type_id').alias('visit_type_id'),
+                f.first('birthdate').alias('birthdate'),
+                f.to_json(f.collect_list(f.struct(
+                    f.col('obs_id').alias('obs_id'),
+                    f.col('voided').alias('voided'),
+                    f.col('concept_id').alias('concept_id'),
+                    f.col('obs_datetime').alias('obs_datetime'),
+                    f.col('value').alias('value'),
+                    f.col('value_type').alias('value_type'),
+                    f.col('obs_group_id').alias('obs_group_id'),
+                    f.col('parent_concept_id').alias('parent_concept_id'),
+                ))).alias('obs'))
+
+    # static method for restructuring  obs into expected format
+    @staticmethod
+    def sanitize_orders(orders):
+        return orders \
+            .withColumnRenamed('concept_id', 'order_concept_id') \
+            .orderBy('encounter_datetime').groupBy('encounter_id') \
+            .agg(
+                f.col('encounter_id'),
+                f.first('patient_id').alias('patient_id'),
+                f.first('location_id').alias('location_id'),
+                f.first('visit_id').alias('visit_id'),
+                f.first('encounter_datetime').alias('encounter_datetime'),
+                f.first('encounter_type').alias('encounter_type'),
+                f.first('gender').alias('gender'),
+                f.first('dead').alias('dead'),
+                f.first('death_date').alias('death_date'),
+                f.first('uuid').alias('patient_uuid'),
+                f.first('visit_type_id').alias('visit_type_id'),
+                f.first('birthdate').alias('birthdate'),
+                f.to_json(f.collect_list(f.struct(
+                    f.col('order_id').alias('order_id'),
+                    f.col('order_concept_id').alias('order_concept_id'),
+                    f.col('date_activated').alias('date_activated'),
+                    f.col('voided').alias('voided'),
+                ))).alias('orders'))
+
+    # start spark job
+    def run(self):
+
+        print("Encounter Batch Started at =", datetime.now().time())
+
+        # ingest all components
+        orders = self.ingest_orders()
+        obs_without_encounter = self.ingest_obs_without_encounter()
+        obs_with_encounter = self.ingest_obs_with_encounter()
+
+        # union obs and join
+        all_obs = obs_with_encounter.union(obs_without_encounter)
+        obs_orders = all_obs\
+            .join(orders, on=['encounter_id'], how='outer') \
+            .select(
+                    f.col('encounter_id'),
+                    f.coalesce(all_obs.patient_id, orders.patient_id).alias('patient_id'),
+                    f.coalesce(all_obs.location_id, orders.location_id).alias('location_id'),
+                    f.coalesce(all_obs.visit_id, orders.visit_id).alias('visit_id'),
+                    f.coalesce(all_obs.encounter_datetime, orders.encounter_datetime).alias('encounter_datetime'),
+                    f.coalesce(all_obs.encounter_type, orders.encounter_type).alias('encounter_type'),
+                    f.coalesce(all_obs.dead, orders.dead).alias('dead'),
+                    f.coalesce(all_obs.gender, orders.gender).alias('gender'),
+                    f.coalesce(all_obs.death_date, orders.death_date).alias('death_date'),
+                    f.coalesce(all_obs.patient_uuid, orders.patient_uuid).alias('patient_uuid'),
+                    f.coalesce(all_obs.visit_type_id, orders.visit_type_id).alias('visit_type_id'),
+                    f.coalesce(all_obs.birthdate, orders.birthdate).alias('birthdate'),
+                    all_obs.obs,
+                    orders.orders
                     )
-                ).otherwise(None))).alias('orders'),
-                f.to_json(f.collect_list(
-                   f.struct(
-                         f.lit('obs_uuid_to_be_included').alias('uuid'),
-                         f.col('obs_datetime').alias('obsDatetime'),
-                         f.struct(
-                             f.col('parent_obs_concept_uuid').alias('uuid'),
-                             f.struct(
-                             f.col('parent_obs_concept_name').alias('display'))
-                             .alias('name')
-                         ).alias('concept'),
-                        f.when(f.col('value_coded').isNotNull(),
-                            f.struct(
-                                    f.col('value_type').alias('type'),
-                                    f.to_json(
-                                              f.struct(
-                                                  f.col('value_coded_concept_uuid').alias('uuid'),
-                                                  f.col('value_coded_concept_name').alias('display')
-                                              )).alias('value')
-                                    )
-                        ).when(f.col('value_not_coded').isNotNull(),
-                            f.struct(
-                                    f.col('value_type').alias('type'),
-                                    f.col('value_not_coded').alias('value')
-                                    )
-                        ).alias('value'),
-                        f.when(f.col('groupmembers').isNotNull(), 
-                               f.col('groupmembers')
-                              ).alias('groupMembers')
-                ))).alias('obs'),
-            ).withColumn('build_date', f.current_timestamp())
 
-
-        # In[19]:
-
-        def run(self):
-            start = time.time()
-            ### build obs first
-            obs = ObsJob().build_obs()
-
-            ### start working on encounters
-            encounters = self.get_encounters()
-            forms = self.get_forms()
-            locations = self.get_locations().alias('location')
-            visits = self.get_visits()
-            encounter_providers = self.get_encounter_providers().alias('encounter_provider')
-            encounter_types = self.get_encounter_types()
-            patients = self.get_patients()
-            orders = self.get_orders()
-
-            joined_encounters = encounters.join(f.broadcast(forms), on='form_id')\
-            .join(f.broadcast(locations), on='location_id')\
-            .join(f.broadcast(visits),on='visit_id')\
-            .join(f.broadcast(encounter_types), on=encounters['encounter_type'] == encounter_types['encounter_type_id'])\
-            .join(patients, on='patient_id').join(encounter_providers, on=encounter_providers['encounter_id'] == encounters['encounter_id'], how='left')\
-            .join(orders, on=orders['encounter_id'] == encounters['encounter_id'], how='left')\
-            .join(obs, on=obs['encounter_id'] == encounters['encounter_id'], how='left')\
-            .drop('enc_provider.encounter_id', 'obs.encounter_id', 'orders.encounter_id')
-
-            openmrs_encounter_object = self.transform_into_openmrs_object(joined_encounters)
-
-            end = time.time()
-            print("Encounter Batch Job took %.2f seconds" % (end - start))
-           
-
-            return openmrs_encounter_object
-
+        return obs_orders
