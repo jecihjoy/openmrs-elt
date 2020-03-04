@@ -8,3 +8,9 @@ checkpoints
 *.pyc
 .vscode/
 *.delta
+config/config.json
+/example-validate.ipynb
+/obs job.ipynb
+/obs job binlog fetch.ipynb
+/obs job using obs_with_encounter.ipynb
+/.vscode/*
