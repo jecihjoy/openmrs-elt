@@ -23,13 +23,12 @@ class BatchJob:
             .builder \
             .master(spark_config['master']) \
             .appName(spark_config['appName']) \
-            .config("spark.executor.memory", '5g') \
-            .config("spark.driver.memory", '20g') \
+            .config("spark.driver.host", spark_config['driverHost']) \
+            .config("spark.executor.memory", spark_config['conf']['executor.memory']) \
+            .config("spark.driver.memory", spark_config['conf']['driver.memory']) \
             .config('spark.sql.repl.eagerEval.enabled', True) \
             .config("jsonstore.rdd.partitions", 15000) \
             .config('spark.driver.maxResultSize', "20g") \
-            .config("spark.cores.max", 32) \
-            .config("spark.executor.cores", 8) \
             .config("spark.executor.heartbeatInterval", "10000000") \
             .config("spark.network.timeout", "10000000") \
             .config('spark.sql.crossJoin.enabled', True) \

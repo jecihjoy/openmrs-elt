@@ -2,13 +2,14 @@
   "spark": {
     "app_name": "OpenMRS ELT Pipeline",
     "master": "local[*]",
+    "driverHost": "localhost",
     "packages": [
       "mysql:mysql-connector-java:8.0.19",
       "io.delta:delta-core_2.11:0.5.0",
       "org.apache.spark:spark-sql_2.11:2.4.0"
     ],
     "conf": {
-      "executor.memory": "5g",
+      "executor.memory": "10g",
       "driver.memory": "30g"
     }
   },
