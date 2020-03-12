@@ -28,6 +28,7 @@ class BatchJob:
             .config("spark.driver.memory", spark_config['conf']['driver.memory']) \
             .config('spark.sql.repl.eagerEval.enabled', True) \
             .config("jsonstore.rdd.partitions", 15000) \
+            .config("spark.executor.instances", 10) \
             .config('spark.driver.maxResultSize', "20g") \
             .config("spark.executor.heartbeatInterval", "10000000") \
             .config("spark.network.timeout", "10000000") \
