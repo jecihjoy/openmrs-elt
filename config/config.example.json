@@ -2,15 +2,43 @@
   "spark": {
     "app_name": "OpenMRS ELT Pipeline",
     "master": "local[*]",
-    "driverHost": "localhost",
     "packages": [
       "mysql:mysql-connector-java:8.0.19",
       "io.delta:delta-core_2.11:0.5.0",
-      "org.apache.spark:spark-sql_2.11:2.4.0"
+      "org.apache.spark:spark-sql_2.11:2.4.5",
+      "org.apache.spark:spark-streaming-kafka-0-8_2.11:2.4.5"
     ],
     "conf": {
-      "executor.memory": "10g",
-      "driver.memory": "30g"
+      "spark.driver.host": "0.0.0.0",
+      "spark.executor.memory": "10g",
+      "spark.sql.repl.eagerEval.enabled": "True",
+      "jsonstore.rdd.partitions": 15000,
+      "spark.executor.instances": 10,
+      "spark.driver.maxResultSize": "20g",
+      "spark.executor.heartbeatInterval":"10000000",
+      "spark.network.timeout": "10000000",
+      "spark.sql.crossJoin.enabled": "True",
+      "spark.sql.autoBroadcastJoinThreshold": 0,
+      "spark.sql.shuffle.partitions": 1000,
+
+      "spark.streaming.backpressure.enabled": "true",
+      "spark.streaming.receiver.writeAheadLog.enable": "true",
+      "spark.streaming.unpersist":"true",
+      "spark.executor.extrajavaoptions": "-Xmx2048m",
+      "spark.streaming.kafka.consumer.poll.ms": "50"
+    },
+    "streaming": {
+      "batchDuration": 1.5,
+      "checkpointDir": "./checkpoint"
+    }
+  },
+  "kafka":{
+    "encounter-obs-orders" : {
+      "topics":["dbserver1.openmrs.obs", "dbserver1.openmrs.orders", "dbserver1.openmrs.encounter"],
+      "config":{
+        "metadata.broker.list": "kafka:9092",
+        "auto.offset.reset": "smallest"
+      }
     }
   },
   "mysql": {
