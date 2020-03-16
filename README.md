@@ -29,15 +29,15 @@ conda install pyspark
 mysql db_name < views/*.sql
 ```
 
-### 4. Execute the batch job as demonstrated in [Jupyter notebook](example.ipynb)
+### 4. Execute the batch job as demonstrated in [Jupyter notebook](batch-example.ipynb)
 
 ```
 jupyter notebook example.ipynb
 ```
- Alternatively you can execute the batch.py script
+ Alternatively you can execute the batch_job.py script
 
  ```
-python3 batch.py
+python3 batch_job.py
 
 ```
 
@@ -47,6 +47,6 @@ python3 batch.py
 Before executing this script, please ensure you deploy debezium/kafka cluster demonstrated in this project: TODO
 
 ```
-python3 stream.py
+python3 streaming_job.py
 
 ```
