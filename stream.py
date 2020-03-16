@@ -8,6 +8,7 @@ def main():
     print(SparkConf().getAll())  # check if all packages are loaded
     job = EncounterJob()
     job.run()
+    input("Press enter to exit ;)")
 
 if __name__ == "__main__":
     main()

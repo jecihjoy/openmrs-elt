@@ -20,12 +20,14 @@
       "spark.sql.crossJoin.enabled": "True",
       "spark.sql.autoBroadcastJoinThreshold": 0,
       "spark.sql.shuffle.partitions": 1000,
+      "spark.executor.extraJavaOptions": "-XX:+UseConcMarkSweepGC with --XX:+UseG1GC",
 
+      "spark.locality.wait": 100,
       "spark.streaming.backpressure.enabled": "true",
       "spark.streaming.receiver.writeAheadLog.enable": "true",
       "spark.streaming.unpersist":"true",
-      "spark.executor.extrajavaoptions": "-Xmx2048m",
-      "spark.streaming.kafka.consumer.poll.ms": "50"
+      "spark.streaming.kafka.consumer.poll.ms": "512",
+      "spark.streaming.kafka.maxRetries":"5"
     },
     "streaming": {
       "batchDuration": 1.5,
@@ -36,7 +38,7 @@
     "encounter-obs-orders" : {
       "topics":["dbserver1.openmrs.obs", "dbserver1.openmrs.orders", "dbserver1.openmrs.encounter"],
       "config":{
-        "metadata.broker.list": "kafka:9092",
+        "metadata.broker.list": "0.0.0.0:9092",
         "auto.offset.reset": "smallest"
       }
     }

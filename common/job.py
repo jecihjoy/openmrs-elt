@@ -44,6 +44,7 @@ class Job:
             ssc_config = Job.getConfig()['spark']['streaming']
             sc = Job.getSpark().sparkContext
             ssc = StreamingContext(sc, ssc_config['batchDuration'])
+            ssc.checkpoint(ssc_config['checkpointDir'])
             globals()["sparkSC"] = ssc
         return globals()["sparkSC"]
 
