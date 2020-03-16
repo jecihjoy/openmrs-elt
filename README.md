@@ -1,7 +1,7 @@
 # Openmrs ELT Pipeline
 
-This project demonstrates how to perform batch process for generating flat_obs i.e Extract part ofr ELT. 
-Data is extracted from openmrs and storerd in delta lake i.e flat_obs
+This project demonstrates how to perform batch and streaming process for generating flat_obs i.e Extract part of the ELT. 
+Data is extracted from OpenMRS and stored in delta lake i.e flat_obs
 
 ## Getting started
 
@@ -34,11 +34,19 @@ mysql db_name < views/*.sql
 ```
 jupyter notebook example.ipynb
 ```
- Alternatively you can execute the main.py script
+ Alternatively you can execute the batch.py script
 
  ```
-python3 main.py
+python3 batch.py
 
 ```
 
 
+
+### 5. Execute the streaming job - use Airflow to Schedule
+Before executing this script, please ensure you deploy debezium/kafka cluster demonstrated in this project: TODO
+
+```
+python3 stream.py
+
+```
