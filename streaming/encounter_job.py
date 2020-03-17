@@ -65,6 +65,9 @@ class EncounterJob(Job):
                     for encounter in person["encounters"]:
                         encounter_ids.append(encounter)
 
+                print("Obs CDC: Patient IDs ", person_ids)
+                print("Order CDC: Enc IDs ", encounter_ids)
+
                 # ingest all components
                 obs_with_encounter = self.ingest_obs_with_encounter(person_ids) 
                 obs_without_encounter = self.ingest_obs_without_encounter(person_ids)
@@ -96,12 +99,12 @@ class EncounterJob(Job):
               .map(lambda msg: json.loads(msg[1]))
 
         obs_stream = kafka_stream \
-                .filter(lambda msg: msg['schema']['name'] == 'dbserver1.openmrs.obs.Envelope') \
+                .filter(lambda msg: 'obs.Envelope' in msg['schema']['name']) \
                 .map(lambda msg: msg['payload']['after']) \
                 .map(lambda a: Row(**a))
 
         orders_stream = kafka_stream \
-                .filter(lambda msg: msg['schema']['name'] == 'dbserver1.openmrs.orders.Envelope') \
+                .filter(lambda msg: 'orders.Envelope' in msg['schema']['name']) \
                 .map(lambda msg: msg['payload']['after'])\
                 .map(lambda a: Row(**a))
         
