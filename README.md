@@ -44,9 +44,11 @@ python3 batch_job.py
 
 
 ### 5. Execute the streaming job - use Airflow to Schedule
-Before executing this script, please ensure you deploy debezium/kafka cluster demonstrated in this project: TODO
+Before executing this script, please ensure you deploy debezium/kafka cluster (OpenMRS CDC) demonstrated in this project: TODO
 
 ```
 python3 streaming_job.py
 
 ```
+
+Alternatively, you can checkout example of streaming job demonstrated in [Jupyter notebook](streaming-example.ipynb)

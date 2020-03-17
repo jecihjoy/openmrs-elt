@@ -2,7 +2,7 @@
 
 import time
 import json
-from datetime import datetime
+import datetime
 from pyspark.sql import SparkSession, Row, SQLContext, Window
 from pyspark.sql.types import StructType, StringType, StructField, BooleanType, IntegerType, ArrayType, TimestampType, \
     DoubleType
@@ -32,7 +32,10 @@ class EncounterJob(Job):
                         where patient_id in ({0}) and (voided is null or voided = 0)) AS tmp
                         """.format(patient_ids)
     
-        obs = super().getDataFromMySQL(query,None)
+        obs = super().getDataFromMySQL(query,None)\
+            .withColumn('encounter_id', f.col('obs_id') + 100000000) \
+            .withColumn('order_id', f.lit('null')) \
+            .withColumn('order_concept_id', f.lit('null'))
         return EncounterHelper.sanitize_obs(obs)
 
     # responsible for ingesting orders
@@ -63,9 +66,9 @@ class EncounterJob(Job):
                         encounter_ids.append(encounter)
 
                 # ingest all components
-                obs_with_encounter = self.ingest_obs_with_encounter(patient_ids) 
-                obs_without_encounter = self.ingest_obs_without_encounter(patient_ids)
-                orders = self.ingest_obs_with_encounter(encounter_ids)
+                obs_with_encounter = self.ingest_obs_with_encounter(person_ids) 
+                obs_without_encounter = self.ingest_obs_without_encounter(person_ids)
+                orders = self.ingest_orders(encounter_ids)
                 
                 # union obs and join
                 all_obs = obs_with_encounter.union(obs_without_encounter)
@@ -84,7 +87,7 @@ class EncounterJob(Job):
     # start spark streaming job
     def run(self):
 
-        print("Encounter Streaming Job Started at =", datetime.now().time())
+        print("Encounter Streaming Job Started at =", datetime.datetime.utcnow())
         topic='encounter-obs-orders' # define topic/s
         kafka_config = super().getConfig()['kafka'][topic]
         ssc= super().getStreamingContext()
