@@ -65,11 +65,11 @@ class EncounterJob(Job):
                     for encounter in person["encounters"]:
                         encounter_ids.append(encounter)
 
-                print("Obs CDC: Patient IDs ", person_ids)
-                print("Order CDC: Enc IDs ", encounter_ids)
+                print("CDC: Patient IDs ", person_ids)
+                print("CDC: Encounter IDs ", encounter_ids)
 
                 # ingest all components
-                obs_with_encounter = self.ingest_obs_with_encounter(person_ids) 
+                obs_with_encounter = self.ingest_obs_with_encounter(encounter_ids) 
                 obs_without_encounter = self.ingest_obs_without_encounter(person_ids)
                 orders = self.ingest_orders(encounter_ids)
                 
