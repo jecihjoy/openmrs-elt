@@ -8,8 +8,6 @@ from pyspark.sql.types import StructType, StringType, StructField, BooleanType, 
 from pyspark import SparkContext
 import pyspark.sql.functions as f
 from common.job import Job
-
-
 class EncounterHelper(Job):
 
 
@@ -102,4 +100,3 @@ class EncounterHelper(Job):
                     all_obs.obs,
                     orders.orders
                     )
-

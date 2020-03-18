@@ -8,9 +8,10 @@ from pyspark.sql.types import StructType, StringType, StructField, BooleanType, 
     DoubleType
 from pyspark import SparkContext
 import pyspark.sql.functions as f
+from pyspark.streaming.kafka import KafkaUtils
 from common.job import Job
 from common.encounter_helper import EncounterHelper
-from pyspark.streaming.kafka import KafkaUtils
+from common.delta import DeltaUtils
 
 
 class EncounterJob(Job):
@@ -47,6 +48,16 @@ class EncounterJob(Job):
         orders = super().getDataFromMySQL(query,None)                
         return EncounterHelper.sanitize_orders(orders)
 
+    # Function to upsert flat_bs microBatchOutputDF into Delta Lake table using merge
+    @staticmethod
+    def sinkFlatObsToDelta(microBatchOutputDF, batchId):
+        print("Upserting MicroBatch ---> ", microBatchOutputDF.count())
+        log = DeltaUtils.upsertMicroBatchToDelta("flat_obs_orders", # delta tablename
+                                          microBatchOutputDF, # microbatch
+                                          "table.encounter_id = updates.encounter_id" # where clause condition
+                                          )
+        print("MicroBatch Logs: ", log)
+
     # responsible for rebuilding changed data
     def run_microbatch(self, rdd):
         try:
@@ -65,8 +76,8 @@ class EncounterJob(Job):
                     for encounter in person["encounters"]:
                         encounter_ids.append(encounter)
 
-                print("CDC: Patient IDs ", person_ids)
-                print("CDC: Encounter IDs ", encounter_ids)
+                print("CDC: # Patient IDs in Microbatch --> ", len(person_ids))
+                print("CDC: # Encounter IDs in Microbatch --> ", len(encounter_ids))
 
                 # ingest all components
                 obs_with_encounter = self.ingest_obs_with_encounter(encounter_ids) 
@@ -77,7 +88,8 @@ class EncounterJob(Job):
                 all_obs = obs_with_encounter.union(obs_without_encounter)
                 obs_orders = EncounterHelper.join_obs_orders(all_obs,orders)
 
-                #TODO save to Data Lake
+                # write to delta lake
+                self.sinkFlatObsToDelta(obs_orders,0)
                 
                 end_time = datetime.datetime.utcnow()
                 print("Took {0} seconds".format((end_time - start_time).total_seconds()))
@@ -97,6 +109,7 @@ class EncounterJob(Job):
         kafka_stream = KafkaUtils\
               .createDirectStream(ssc,topics=kafka_config['topics'],kafkaParams=kafka_config['config']) \
               .map(lambda msg: json.loads(msg[1]))
+        #print('Event received in window: ', kafka_stream.pprint())
 
         obs_stream = kafka_stream \
                 .filter(lambda msg: 'obs.Envelope' in msg['schema']['name']) \
@@ -134,8 +147,11 @@ class EncounterJob(Job):
         #group by patient_id to get distinct patients
         enc_obs_orders = enc_obs_orders.groupByKey()\
             .map(lambda x : Row(person_id=x[0], encounters=list(filter(None.__ne__, x[1]))))
+
+        print('Event received in window: ', enc_obs_orders.pprint())
         
         enc_obs_orders.foreachRDD(lambda rdd: self.run_microbatch(rdd))
+        
 
         ssc.start()
         ssc.awaitTermination()

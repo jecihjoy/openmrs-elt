@@ -43,6 +43,15 @@
       }
     }
   },
+  "Delta":{
+    "tables":{
+      "flat_obs_orders":{
+        "path":"flat_obs_orders.delta",
+        "partition": 24
+      }
+    }
+
+  },
   "mysql": {
     "host": "localhost",
     "port": "3306",

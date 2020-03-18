@@ -5,7 +5,6 @@ import json
 from pathlib import Path
 import os
 
-
 class Job:
 
     @staticmethod
@@ -77,6 +76,3 @@ class Job:
              return  Job.getMysqlOptions(). \
                 option("dbtable", tableName). \
                 load()
-
-
-    

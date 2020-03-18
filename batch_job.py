@@ -8,6 +8,7 @@ def main():
     print(SparkConf().getAll())  # check if all packages are loaded
     job = EncounterJob()
     flat_obs = job.run()
+    # TODO make this configurable
     flat_obs.coalesce(24).write.format("delta").mode("overwrite").save("flat_obs_orders.delta")
     input("Press enter to exit ;)")
 
