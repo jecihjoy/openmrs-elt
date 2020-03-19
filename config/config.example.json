@@ -1,6 +1,6 @@
 {
   "spark": {
-    "app_name": "OpenMRS ELT Pipeline",
+    "appName": "OpenMRS ELT Pipeline",
     "master": "local[*]",
     "packages": [
       "mysql:mysql-connector-java:8.0.19",
