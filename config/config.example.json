@@ -11,6 +11,7 @@
     "conf": {
       "spark.driver.host": "0.0.0.0",
       "spark.executor.memory": "10g",
+      "spark.driver.memory": "10g",
       "spark.sql.repl.eagerEval.enabled": "True",
       "jsonstore.rdd.partitions": 15000,
       "spark.executor.instances": 10,
@@ -43,7 +44,7 @@
       }
     }
   },
-  "Delta":{
+  "delta":{
     "tables":{
       "flat_obs_orders":{
         "path":"flat_obs_orders.delta",
