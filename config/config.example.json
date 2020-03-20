@@ -21,7 +21,7 @@
       "spark.sql.crossJoin.enabled": "True",
       "spark.sql.autoBroadcastJoinThreshold": 0,
       "spark.sql.shuffle.partitions": 1000,
-      "spark.executor.extraJavaOptions": "-XX:+UseConcMarkSweepGC with --XX:+UseG1GC",
+      "spark.executor.extraJavaOptions": "-XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:+CMSPermGenSweepingEnabled -XX:+ScavengeBeforeFullGC -XX:+CMSScavengeBeforeRemark -XX:+DisableExplicitGC",
 
       "spark.locality.wait": 100,
       "spark.streaming.backpressure.enabled": "true",
@@ -31,7 +31,7 @@
       "spark.streaming.kafka.maxRetries":"5"
     },
     "streaming": {
-      "batchDuration": 1.5,
+      "batchDuration": 20,
       "checkpointDir": "./checkpoint"
     }
   },
@@ -40,7 +40,8 @@
       "topics":["dbserver1.openmrs.obs", "dbserver1.openmrs.orders", "dbserver1.openmrs.encounter"],
       "config":{
         "metadata.broker.list": "0.0.0.0:9092",
-        "auto.offset.reset": "smallest"
+        "auto.offset.reset": "largest",
+        "auto.create.topics.enable":"true"
       }
     }
   },
