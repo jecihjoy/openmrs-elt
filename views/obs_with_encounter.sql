@@ -29,9 +29,9 @@ CREATE OR REPLACE VIEW `obs_with_encounter` AS
         `visit`.`visit_type_id` AS `visit_type_id`
     FROM
         ((((`obs` FORCE INDEX FOR JOIN (ENCOUNTER_OBSERVATIONS)
-        JOIN `encounter` ON ((`encounter`.`encounter_id` = `obs`.`encounter_id`)))
+        JOIN `encounter` ON ((`encounter`.`encounter_id` = `obs`.`encounter_id` and encounter.voided=0 and obs.voided=0)))
         LEFT JOIN `person` ON ((`person`.`person_id` = `obs`.`person_id`)))
         LEFT JOIN `visit` ON ((`visit`.`visit_id` = `encounter`.`visit_id`)))
-        LEFT JOIN `obs` `obs_2` ON ((`obs`.`obs_group_id` = `obs_2`.`obs_id`)))
+        LEFT JOIN `obs` `obs_2` ON ((`obs`.`obs_group_id` = `obs_2`.`obs_id` and obs_2.voided=0)))
     WHERE
         (`obs`.`encounter_id` IS NOT NULL)

@@ -18,7 +18,7 @@ CREATE OR REPLACE VIEW `encounter_orders` AS
         `visit`.`visit_type_id` AS `visit_type_id`
     FROM
         (((`orders`
-        JOIN `encounter` ON ((`encounter`.`encounter_id` = `orders`.`encounter_id`)))
+        JOIN `encounter` ON ((`encounter`.`encounter_id` = `orders`.`encounter_id` and encounter.voided=0 and orders.voided=0)))
         LEFT JOIN `person` ON ((`person`.`person_id` = `encounter`.`patient_id`)))
         LEFT JOIN `visit` ON ((`visit`.`visit_id` = `encounter`.`visit_id`)))
     ORDER BY `encounter`.`encounter_id`

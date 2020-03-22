@@ -26,7 +26,7 @@ CREATE OR REPLACE VIEW `obs_with_null_encounter` AS
         999 AS `visit_type_id`
     FROM
         ((`obs`
-        JOIN `person` ON ((`person`.`person_id` = `obs`.`person_id`)))
-        LEFT JOIN `obs` `obs_2` ON ((`obs`.`obs_group_id` = `obs_2`.`obs_id`)))
+        JOIN `person` ON ((`person`.`person_id` = `obs`.`person_id` and obs.voided=0)))
+        LEFT JOIN `obs` `obs_2` ON ((`obs`.`obs_group_id` = `obs_2`.`obs_id` and obs_2.voided=0)))
     WHERE
         ISNULL(`obs`.`encounter_id`)

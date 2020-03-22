@@ -28,7 +28,10 @@
       "spark.streaming.receiver.writeAheadLog.enable": "true",
       "spark.streaming.unpersist":"true",
       "spark.streaming.kafka.consumer.poll.ms": "512",
-      "spark.streaming.kafka.maxRetries":"5"
+      "spark.streaming.kafka.maxRetries":"5",
+
+      "spark.databricks.delta.optimizeWrite.enabled": "true",
+      "spark.databricks.delta.autoCompact.enabled": "true"
     },
     "streaming": {
       "batchDuration": 20,
@@ -49,7 +52,7 @@
     "tables":{
       "flat_obs_orders":{
         "path":"flat_obs_orders.delta",
-        "partition": 24
+        "partitionBy": "patient_id"
       }
     }
 

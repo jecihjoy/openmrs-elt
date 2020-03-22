@@ -7,8 +7,8 @@ from pyspark.sql.types import StructType, StringType, StructField, BooleanType, 
     DoubleType
 from pyspark import SparkContext
 import pyspark.sql.functions as f
-from common.job import Job
-class EncounterHelper(Job):
+from common.utils import PipelineUtils
+class EncounterHelper(PipelineUtils):
 
 
     # TODO Remove all static methods into helper class | code could be reused in streaming-pipeline

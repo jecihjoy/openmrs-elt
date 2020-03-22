@@ -7,11 +7,11 @@ from pyspark.sql.types import StructType, StringType, StructField, BooleanType, 
     DoubleType
 from pyspark import SparkContext
 import pyspark.sql.functions as f
-from common.job import Job
+from common.utils import PipelineUtils
 from common.encounter_helper import EncounterHelper
 
 
-class EncounterJob(Job):
+class EncounterJob(PipelineUtils):
 
     # responsible for ingesting obs with non-null encounters
     def ingest_obs_with_encounter(self):
@@ -46,6 +46,15 @@ class EncounterJob(Job):
             'numPartitions': 24})
         return EncounterHelper.sanitize_orders(orders)
 
+    # responsible for saving and optimizing delta tables
+    def save_as_delta_table(self, df):
+        # TODO make this configurable
+        deltaConfig = super().getConfig()['delta']
+        tableConfig = deltaConfig['tables']['flat_obs_orders']
+        df.write.format("delta").mode("overwrite")\
+            .partitionBy(tableConfig["partitionBy"]).save(tableConfig["path"])
+        #super().spark.sql("OPTIMIZE tableName ZORDER BY (my_col)")
+
     # start spark job
     def run(self):
 
@@ -59,5 +68,8 @@ class EncounterJob(Job):
         # union obs and join
         all_obs = obs_with_encounter.union(obs_without_encounter)
         obs_orders = EncounterHelper.join_obs_orders(all_obs,orders)
+        
+        # sink to delta
+        self.save_as_delta_table(obs_orders)
 
         return obs_orders

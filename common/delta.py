@@ -1,13 +1,13 @@
-from common.job import Job
-Job.getSpark()
+from common.utils import PipelineUtils
+PipelineUtils.getSpark()
 from delta.tables import * # ignore pylint error 
 
 class DeltaUtils:
     @staticmethod
     def getDeltaTable(table):
-        deltaConfig = Job.getConfig()['delta']
+        deltaConfig = PipelineUtils.getConfig()['delta']
         path=deltaConfig['tables'][table]["path"]
-        spark = Job.getSpark()
+        spark = PipelineUtils.getSpark()
         return DeltaTable.forPath(spark, path)
 
     # static method for merging incremental updates  into Delta tables

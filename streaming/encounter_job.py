@@ -9,18 +9,18 @@ from pyspark.sql.types import StructType, StringType, StructField, BooleanType, 
 from pyspark import SparkContext
 import pyspark.sql.functions as f
 from pyspark.streaming.kafka import KafkaUtils
-from common.job import Job
+from common.utils import PipelineUtils
 from common.encounter_helper import EncounterHelper
 from common.delta import DeltaUtils
 
 
-class EncounterJob(Job):
+class EncounterJob(PipelineUtils):
 
     # responsible for ingesting obs with non-null encounters
     def ingest_obs_with_encounter(self,encounter_ids):
         encounter_ids=','.join(map(str, encounter_ids))
         query = """(SELECT * FROM obs_with_encounter
-               where encounter_id in ({0}) and (voided is null or voided = 0)) AS tmp
+               where encounter_id in ({0})) AS tmp
               """.format(encounter_ids)
 
         obs = super().getDataFromMySQL(query,None)
@@ -30,7 +30,7 @@ class EncounterJob(Job):
     def ingest_obs_without_encounter(self,patient_ids):
         patient_ids=','.join(map(str, patient_ids))
         query ="""(SELECT * FROM obs_with_null_encounter 
-                        where patient_id in ({0}) and (voided is null or voided = 0)) AS tmp
+                        where patient_id in ({0})) AS tmp
                         """.format(patient_ids)
     
         obs = super().getDataFromMySQL(query,None)\
@@ -44,32 +44,33 @@ class EncounterJob(Job):
         encounter_ids=','.join(map(str, encounter_ids))
         query ="""(SELECT * FROM encounter_orders
                         where encounter_id in ({0}) 
-                        and (voided is null or voided = 0)) AS tmp""".format(encounter_ids)
-        orders = super().getDataFromMySQL(query,None)                
+                        ) AS tmp""".format(encounter_ids)
+        orders = super().getDataFromMySQL(query,None)  
+
+        # If record is null then void it              
         return EncounterHelper.sanitize_orders(orders)
 
     # Function to upsert flat_bs microBatchOutputDF into Delta Lake table using merge
     @staticmethod
     def sinkFlatObsToDelta(microBatchOutputDF, batchId):
-        print("Upserting MicroBatch ---> ", microBatchOutputDF.count())
-        log = DeltaUtils.upsertMicroBatchToDelta("flat_obs_orders", # delta tablename
+        DeltaUtils.upsertMicroBatchToDelta("flat_obs_orders", # delta tablename
                                           microBatchOutputDF, # microbatch
                                           "table.encounter_id = updates.encounter_id" # where clause condition
                                           )
-        print("MicroBatch Logs: ", log)
 
     # responsible for rebuilding changed data
     def run_microbatch(self, rdd):
         try:
 
             collected = rdd.collect()
+            records = len(collected) 
 
-            if len(collected) > 0:
+            if records> 0:
                 start_time = datetime.datetime.utcnow()
                 encounter_ids = []
                 person_ids = []
                 
-                print("---Micro-Batch--- ")
+                print("---Upserting Micro-Batch--- ")
                 print("Starting calculations for flat_enc_obs_orders " + time.ctime())
                 for person in collected:
                     person_ids.append(person["person_id"])
@@ -88,7 +89,7 @@ class EncounterJob(Job):
                 all_obs = obs_with_encounter.union(obs_without_encounter)
                 obs_orders = EncounterHelper.join_obs_orders(all_obs,orders)
 
-                # write to delta lake
+                # upsert to delta lake
                 self.sinkFlatObsToDelta(obs_orders,0)
                 
                 end_time = datetime.datetime.utcnow()
@@ -99,6 +100,27 @@ class EncounterJob(Job):
             print("An unexpected error occurred")
             raise
 
+    # responsible for deleting voided obs
+    def void_microbatch(self, rdd):
+        try:
+
+            encounter_ids = rdd.collect()
+            records = len(encounter_ids) 
+            if records> 0:
+                start_time = datetime.datetime.utcnow()
+                print("---Voiding Micro-Batch--- ")
+                print("Starting voiding flat_enc_obs_orders " + time.ctime())
+                print("CDC: # Encounter IDs in Microbatch --> ", records)
+                encounter_ids=','.join(map(str, encounter_ids))
+                deltaTable = DeltaUtils.getDeltaTable("flat_obs_orders")
+                deltaTable.delete("encounter_id IN ({0})".format(encounter_ids))
+                end_time = datetime.datetime.utcnow()
+                print("Took {0} seconds".format((end_time - start_time).total_seconds()))
+
+
+        except:
+            print("An unexpected error occurred")
+            raise
     # start spark streaming job
     def run(self):
 
@@ -118,6 +140,11 @@ class EncounterJob(Job):
 
         orders_stream = kafka_stream \
                 .filter(lambda msg: 'orders.Envelope' in msg['schema']['name']) \
+                .map(lambda msg: msg['payload']['after'])\
+                .map(lambda a: Row(**a))
+
+        encounter_stream = kafka_stream \
+                .filter(lambda msg: 'encounter.Envelope' in msg['schema']['name']) \
                 .map(lambda msg: msg['payload']['after'])\
                 .map(lambda a: Row(**a))
         
@@ -148,9 +175,14 @@ class EncounterJob(Job):
         enc_obs_orders = enc_obs_orders.groupByKey()\
             .map(lambda x : Row(person_id=x[0], encounters=list(filter(None.__ne__, x[1]))))
 
-        print('Event received in window: ', enc_obs_orders.pprint())
-        
+        print('Event Enc Obs Orders: ', enc_obs_orders.pprint())
         enc_obs_orders.foreachRDD(lambda rdd: self.run_microbatch(rdd))
+
+        # get voided encounters and delete in delta tables
+        voided_encounter_stream =encounter_stream.filter(lambda a: a['voided']==1)\
+           .map(lambda row: ( row['encounter_id']))
+        print('Event Voided Enc: ', voided_encounter_stream.pprint())
+        voided_encounter_stream.foreachRDD(lambda rdd: self.void_microbatch(rdd))
         
 
         ssc.start()

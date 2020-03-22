@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import os
 
-class Job:
+class PipelineUtils:
 
     @staticmethod
     def getConfig(dir=None):
@@ -16,7 +16,7 @@ class Job:
 
     @staticmethod
     def getSparkConf():
-        config = Job.getConfig()['spark']
+        config = PipelineUtils.getConfig()['spark']
         packages = '--packages ' + ','.join(config['packages'])
         os.environ['PYSPARK_SUBMIT_ARGS'] = (packages + ' pyspark-shell')
 
@@ -31,7 +31,7 @@ class Job:
         if("spark" not in globals()):
             spark = SparkSession \
                 .builder \
-                .config(conf=Job.getSparkConf()) \
+                .config(conf=PipelineUtils.getSparkConf()) \
                 .getOrCreate()
             spark.sparkContext.setLogLevel("INFO") 
             globals()["spark"] = spark
@@ -40,8 +40,8 @@ class Job:
     @staticmethod
     def getStreamingContext():
         if("sparkSC" not in globals()):
-            ssc_config = Job.getConfig()['spark']['streaming']
-            sc = Job.getSpark().sparkContext
+            ssc_config = PipelineUtils.getConfig()['spark']['streaming']
+            sc = PipelineUtils.getSpark().sparkContext
             ssc = StreamingContext(sc, ssc_config['batchDuration'])
             ssc.checkpoint(ssc_config['checkpointDir'])
             globals()["sparkSC"] = ssc
@@ -49,8 +49,8 @@ class Job:
 
     @staticmethod
     def getMysqlOptions():
-        spark = Job.getSpark()
-        mysql_config = Job.getConfig()['mysql']
+        spark = PipelineUtils.getSpark()
+        mysql_config = PipelineUtils.getConfig()['mysql']
         url = 'jdbc:mysql://{}/{}?zeroDateTimeBehavior=convertToNull'.format(mysql_config['host'],
                                                                              mysql_config['openmrsDB'])
         return spark.read.format("jdbc"). \
@@ -64,7 +64,7 @@ class Job:
 
     def getDataFromMySQL(self, tableName, config):
         if config:
-            return  Job.getMysqlOptions(). \
+            return  PipelineUtils.getMysqlOptions(). \
                 option("dbtable", tableName). \
                 option("partitionColumn", config['partitionColumn']). \
                 option("fetchSize", config['fetchsize']). \
@@ -73,6 +73,6 @@ class Job:
                 option("numPartitions", config['numPartitions']). \
                 load()
         else:
-             return  Job.getMysqlOptions(). \
+             return  PipelineUtils.getMysqlOptions(). \
                 option("dbtable", tableName). \
                 load()
