@@ -38,9 +38,12 @@
       "checkpointDir": "./checkpoint"
     }
   },
+  "zookeeper":{
+    "servers":"0.0.0.0:2181"
+  },
   "kafka":{
     "encounter-obs-orders" : {
-      "topics":["dbserver1.openmrs.obs", "dbserver1.openmrs.orders", "dbserver1.openmrs.encounter"],
+      "topics":["dbserver1.openmrs.obs", "dbserver1.openmrs.orders", "dbserver1.openmrs.encounter", "dbserver1.openmrs.person"],
       "config":{
         "metadata.broker.list": "0.0.0.0:9092",
         "auto.offset.reset": "largest",

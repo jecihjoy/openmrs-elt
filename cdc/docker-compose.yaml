@@ -2,6 +2,7 @@ version: '3.7'
 services:
   mysql:
     image: mysql:5.7 
+    restart: always
     ports:
       - "3306:3306"
     container_name: mysql
@@ -42,6 +43,7 @@ services:
   kafka:
     image: debezium/kafka:${DEBEZIUM_VERSION}
     container_name: kafka
+    restart: always
     ports:
      - 9092:9092
      - 9999:9999
@@ -51,9 +53,10 @@ services:
     depends_on:
      - zookeeper
     environment:
-     - ADVERTISED_HOST_NAME=kafka # Important - Please use your host IP to avoid socket error
+     - ADVERTISED_HOST_NAME=192.168.0.105 # Important - Please use your host IP to avoid socket error
      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
-     - KAFKA_NUM_PARTITIONS=3
+     - KAFKA_COMPRESSION_TYPE=gzip
+     - KAFKA_NUM_PARTITIONS=8
      - ZOOKEEPER_CONNECT=zookeeper:2181
      - CREATE_TOPICS=dbserver1.openmrs.orders:1:1 # because ref app doesn't have records on orders
 
@@ -76,14 +79,44 @@ services:
   kafdrop:
     image: obsidiandynamics/kafdrop
     container_name: kafdrop
-    restart: "no"
+    restart: always
     ports:
       - "9191:9000"
     environment:
-      KAFKA_BROKERCONNECT: "kafka:9092,kafka:9999"
+      KAFKA_BROKERCONNECT: "kafka:9092"
       JVM_OPTS: "-Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
     depends_on:
       - "kafka"
+
+  akhq:
+    image: tchiotludo/akhq
+    container_name: akhq
+    restart: always
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "kafka:9092"
+              connect:
+                url: "http://kafka-connect:8083"
+    ports:
+      - 7777:8080
+    links:
+      - kafka
+      - connect
+
+  zoonavigator:
+    container_name: zk-navigator
+    restart: always
+    image: elkozmon/zoonavigator:latest
+    ports:
+      - "5555:5555"
+    environment:
+      HTTP_PORT: 5555
+      AUTO_CONNECT_CONNECTION_STRING: zookeeper:2181
+  
 
 # other important containers - uncomment to install
 

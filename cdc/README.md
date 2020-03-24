@@ -60,6 +60,14 @@ docker-compose -f docker-compose.yaml exec kafka /kafka/bin/kafka-console-consum
  - Additionally, you will also need to configure kafka ADVERTISED_HOST_NAME (in the docker compose) for you to consume messages outside docker network
 
 
+## Monitoring Kafka and Zookeeper
+To monitor topic ingress/egress and other important metrics:
+
+   - KafkaHQ: http://localhost:7777/
+   - Kafdrop: http://localhost:9191/
+   - ZK: http://localhost:5555/
+
+This can be substituted by better monitoring tools like lenses
 
 ## Openmrs App
 Openmrs Application will be eventually accessible on http://localhost:8080/openmrs.

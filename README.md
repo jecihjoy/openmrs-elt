@@ -1,13 +1,14 @@
 # Openmrs ELT Pipeline
 
-This project demonstrates how to perform batch and streaming process for generating flat_obs i.e Extract part of the ELT. 
+The goal of this tool is to provide batch abd near-realtime transformation of OpenMRS data for analytics or data science workflows. This project demonstrates how to perform batch and streaming process for generating flat_obs i.e Extract part of the ELT. 
 Data is extracted from OpenMRS and stored in delta lake i.e flat_obs
 
 ## Getting started
 
-### 1. Install Pyspark
+### 1. Install Requirements
 ```
-conda install pyspark
+pip install pyspark:2.5.4
+pip install kazoo
 
 ```
 

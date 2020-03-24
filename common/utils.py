@@ -1,9 +1,11 @@
-from pyspark.sql import SparkSession
-from pyspark import SparkContext, SparkConf
-from pyspark.streaming import StreamingContext
 import json
 from pathlib import Path
 import os
+from pyspark.sql import SparkSession
+from pyspark import SparkContext, SparkConf
+from pyspark.streaming import StreamingContext
+from kazoo.client import KazooClient
+
 
 class PipelineUtils:
 
@@ -76,3 +78,10 @@ class PipelineUtils:
              return  PipelineUtils.getMysqlOptions(). \
                 option("dbtable", tableName). \
                 load()
+    @staticmethod
+    def getZookeeperInstance():
+        if 'KazooSingletonInstance' not in globals():
+            zkConfig = PipelineUtils.getConfig()['zookeeper']
+            globals()['KazooSingletonInstance'] = KazooClient(zkConfig['servers'])
+            globals()['KazooSingletonInstance'].start()
+        return globals()['KazooSingletonInstance']
