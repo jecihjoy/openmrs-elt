@@ -3,6 +3,8 @@
 The goal of this tool is to provide batch abd near-realtime transformation of OpenMRS data for analytics or data science workflows. This project demonstrates how to perform batch and streaming process for generating flat_obs i.e Extract part of the ELT. 
 Data is extracted from OpenMRS and stored in delta lake i.e flat_obs
 
+- stream processing is becoming a bigger part of Openmrs data landscape
+
 ## Getting started
 
 ### 1. Install Requirements

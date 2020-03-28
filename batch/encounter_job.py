@@ -9,6 +9,7 @@ from pyspark import SparkContext
 import pyspark.sql.functions as f
 from common.utils import PipelineUtils
 from common.encounter_helper import EncounterHelper
+from schema.encounter import Model
 
 
 class EncounterJob(PipelineUtils):
@@ -67,7 +68,9 @@ class EncounterJob(PipelineUtils):
 
         # union obs and join
         all_obs = obs_with_encounter.union(obs_without_encounter)
-        obs_orders = EncounterHelper.join_obs_orders(all_obs,orders)
+        obs_orders = EncounterHelper.join_obs_orders(all_obs,orders)\
+            .withColumn("obs", f.from_json("obs", Model.get_obs_schema()))\
+            .withColumn("orders", f.from_json("orders", Model.get_orders_schema()))
         
         # sink to delta
         self.save_as_delta_table(obs_orders)

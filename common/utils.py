@@ -45,9 +45,16 @@ class PipelineUtils:
             ssc_config = PipelineUtils.getConfig()['spark']['streaming']
             sc = PipelineUtils.getSpark().sparkContext
             ssc = StreamingContext(sc, ssc_config['batchDuration'])
-            ssc.checkpoint(ssc_config['checkpointDir'])
+            #ssc.checkpoint(ssc_config['checkpointDir'])
             globals()["sparkSC"] = ssc
         return globals()["sparkSC"]
+
+    @staticmethod
+    def getStreamingCheckpointPath():
+        if("StreamingCheckpointPath" not in globals()):
+            ssc_config = PipelineUtils.getConfig()['spark']['streaming']
+            globals()["StreamingCheckpointPath"] = ssc_config['checkpointDir']
+        return globals()["StreamingCheckpointPath"]
 
     @staticmethod
     def getMysqlOptions():

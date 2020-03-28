@@ -13,6 +13,7 @@ from common.utils import PipelineUtils
 from common.encounter_helper import EncounterHelper
 from common.delta import DeltaUtils
 from streaming.utils import StreamingUtils
+from schema.encounter import Model
 
 
 class EncounterJob(PipelineUtils):
@@ -52,8 +53,11 @@ class EncounterJob(PipelineUtils):
     # Function to upsert flat_bs microBatchOutputDF into Delta Lake table using merge
     @staticmethod
     def sinkFlatObsToDelta(microBatchOutputDF, batchId):
+    
+        df=microBatchOutputDF.withColumn("obs", f.from_json("obs", Model.get_obs_schema()))\
+                .withColumn("orders", f.from_json("orders", Model.get_orders_schema()))
         DeltaUtils.upsertMicroBatchToDelta("flat_obs_orders", # delta tablename
-                                          microBatchOutputDF, # microbatch
+                                          df, # microbatch
                                           "table.encounter_id = updates.encounter_id" # where clause condition
                                           )
     @staticmethod
@@ -64,7 +68,7 @@ class EncounterJob(PipelineUtils):
 
 
     # responsible for rebuilding changed encounter data
-    def run_encounter_microbatch(self, rdd):
+    def upsert_encounter_microbatch(self, rdd):
         try:
 
             collected = rdd.collect()
@@ -106,7 +110,7 @@ class EncounterJob(PipelineUtils):
             raise
     
     # responsible for rebuilding changed data for patient/s
-    def run_patient_microbatch(self, rdd):
+    def upsert_patient_microbatch(self, rdd):
         try:
 
             collected = rdd.collect()
@@ -219,18 +223,19 @@ class EncounterJob(PipelineUtils):
         
         # perform incremental updates for encounter, obs, and orders and save to delta
         print('Event Enc Obs Orders: ', enc_obs_orders.pprint())
-        enc_obs_orders.foreachRDD(lambda rdd: self.run_encounter_microbatch(rdd))
+        enc_obs_orders.foreachRDD(lambda rdd: self.upsert_encounter_microbatch(rdd))
 
         # update patient details that have changed 
         person_stream=person_stream.map(lambda row: Row(person_id=row['person_id']))
         print('Event Person Enc: ', person_stream.pprint())
-        person_stream.foreachRDD(lambda rdd: self.run_patient_microbatch(rdd))
+        person_stream.foreachRDD(lambda rdd: self.upsert_patient_microbatch(rdd))
 
         # Propagate deletion of voided encounters from delta lake
         voided_encounter_stream =encounter_stream.filter(lambda a: a['voided']==1)\
            .map(lambda row: Row( encounters=row['encounter_id']))
         print('Event Voided Enc: ', voided_encounter_stream.pprint())
         voided_encounter_stream.foreachRDD(lambda rdd: self.void_encounter_microbatch(rdd))
-        
+
+        ssc.checkpoint(super().getStreamingCheckpointPath())
         ssc.start()
         ssc.awaitTermination()
