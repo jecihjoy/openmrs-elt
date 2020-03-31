@@ -7,7 +7,9 @@ from pyspark.sql.types import StructType, StringType, StructField, BooleanType, 
     DoubleType
 from pyspark import SparkContext
 import pyspark.sql.functions as f
+from pyspark.sql.functions import broadcast
 from common.utils import PipelineUtils
+
 class EncounterHelper(PipelineUtils):
 
 
@@ -29,7 +31,7 @@ class EncounterHelper(PipelineUtils):
                         .when(f.col('value_drug').isNotNull(), f.lit('drug')) \
                         .when(f.col('value_datetime').isNotNull(), f.lit('datetime')) \
                         .when(f.col('value_coded').isNotNull(), f.lit('coded'))) \
-            .orderBy('encounter_datetime').groupBy('encounter_id') \
+            .groupBy('encounter_id') \
             .agg(
                 f.first('patient_id').alias('patient_id'),
                 f.first('location_id').alias('location_id'),
@@ -42,7 +44,7 @@ class EncounterHelper(PipelineUtils):
                 f.first('uuid').alias('patient_uuid'),
                 f.first('visit_type_id').alias('visit_type_id'),
                 f.first('birthdate').alias('birthdate'),
-                f.to_json(f.collect_list(f.struct(
+                f.collect_list(f.struct(
                     f.col('obs_id').alias('obs_id'),
                     f.col('voided').alias('voided'),
                     f.col('concept_id').alias('concept_id'),
@@ -51,16 +53,16 @@ class EncounterHelper(PipelineUtils):
                     f.col('value_type').alias('value_type'),
                     f.col('obs_group_id').alias('obs_group_id'),
                     f.col('parent_concept_id').alias('parent_concept_id'),
-                ))).alias('obs'))
+                )).alias('obs'))
+
 
     # static method for restructuring  obs into expected format
     @staticmethod
     def sanitize_orders(orders):
         return orders \
             .withColumnRenamed('concept_id', 'order_concept_id') \
-            .orderBy('encounter_datetime').groupBy('encounter_id') \
+            .groupBy('encounter_id') \
             .agg(
-                f.col('encounter_id'),
                 f.first('patient_id').alias('patient_id'),
                 f.first('location_id').alias('location_id'),
                 f.first('visit_id').alias('visit_id'),
@@ -72,12 +74,12 @@ class EncounterHelper(PipelineUtils):
                 f.first('uuid').alias('patient_uuid'),
                 f.first('visit_type_id').alias('visit_type_id'),
                 f.first('birthdate').alias('birthdate'),
-                f.to_json(f.collect_list(f.struct(
+                f.collect_list(f.struct(
                     f.col('order_id').alias('order_id'),
                     f.col('order_concept_id').alias('order_concept_id'),
                     f.col('date_activated').alias('date_activated'),
                     f.col('voided').alias('voided'),
-                ))).alias('orders'))
+                )).alias('orders'))
 
     # static method for joining obs and orders
     @staticmethod

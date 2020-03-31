@@ -12,14 +12,9 @@
       "spark.driver.host": "0.0.0.0",
       "spark.executor.memory": "10g",
       "spark.driver.memory": "10g",
-      "spark.sql.repl.eagerEval.enabled": "True",
-      "jsonstore.rdd.partitions": 15000,
-      "spark.executor.instances": 10,
       "spark.driver.maxResultSize": "20g",
       "spark.executor.heartbeatInterval":"10000000",
       "spark.network.timeout": "10000000",
-      "spark.sql.crossJoin.enabled": "True",
-      "spark.sql.autoBroadcastJoinThreshold": 0,
       "spark.sql.shuffle.partitions": 1000,
       "spark.sql.dynamicPartitionPruning.enabled": "true",
       "spark.executor.extraJavaOptions": "-XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:+CMSPermGenSweepingEnabled -XX:+ScavengeBeforeFullGC -XX:+CMSScavengeBeforeRemark -XX:+DisableExplicitGC",
@@ -60,6 +55,14 @@
       "flat_obs_orders":{
         "path":"flat_obs_orders.delta",
         "partitionBy": "patient_id"
+      },
+      "flat_obs":{
+        "path":"flat_obs.delta",
+        "partitionBy": ["patient_id","encounter_id"]
+      },
+      "flat_orders":{
+        "path":"flat_orders.delta",
+        "partitionBy": ["patient_id","encounter_id"]
       }
     }
 

@@ -13,7 +13,6 @@ from common.utils import PipelineUtils
 from common.encounter_helper import EncounterHelper
 from common.delta import DeltaUtils
 from streaming.utils import StreamingUtils
-from schema.encounter import Model
 
 
 class EncounterJob(PipelineUtils):
@@ -36,7 +35,7 @@ class EncounterJob(PipelineUtils):
                         where patient_id in ({0})) AS tmp
                         """.format(patient_ids)
         obs = super().getDataFromMySQL(query,None)\
-            .withColumn('encounter_id', f.col('obs_id') + 100000000) \
+            .withColumn('encounter_id', f.col('obs_id') + 10000000000) \
             .withColumn('order_id', f.lit('null')) \
             .withColumn('order_concept_id', f.lit('null'))
         return EncounterHelper.sanitize_obs(obs)
@@ -52,12 +51,9 @@ class EncounterJob(PipelineUtils):
 
     # Function to upsert flat_bs microBatchOutputDF into Delta Lake table using merge
     @staticmethod
-    def sinkFlatObsToDelta(microBatchOutputDF, batchId):
-    
-        df=microBatchOutputDF.withColumn("obs", f.from_json("obs", Model.get_obs_schema()))\
-                .withColumn("orders", f.from_json("orders", Model.get_orders_schema()))
+    def sinkFlatObsToDelta(microbatch, batchId):
         DeltaUtils.upsertMicroBatchToDelta("flat_obs_orders", # delta tablename
-                                          df, # microbatch
+                                          microbatch, # microbatch
                                           "table.encounter_id = updates.encounter_id" # where clause condition
                                           )
     @staticmethod
@@ -90,16 +86,12 @@ class EncounterJob(PipelineUtils):
                 print("CDC: # Encounter IDs in Microbatch --> ", len(encounter_ids))
 
                 # ingest all components
-                obs_with_encounter = self.ingest_obs_with_encounter(encounter_ids, 'encounter_id') 
-                obs_without_encounter = self.ingest_obs_without_encounter(person_ids)
+                all_obs = self.ingest_obs_with_encounter(encounter_ids, 'encounter_id')\
+                    .union(self.ingest_obs_without_encounter(person_ids))
                 orders = self.ingest_orders(encounter_ids, 'encounter_id')
                 
-                # union obs and join
-                all_obs = obs_with_encounter.union(obs_without_encounter)
-                obs_orders = EncounterHelper.join_obs_orders(all_obs,orders)
-
                 # upsert to delta lake
-                self.sinkFlatObsToDelta(obs_orders,0)
+                self.sinkFlatObsToDelta(EncounterHelper.join_obs_orders(all_obs,orders),0)
 
                 end_time = datetime.datetime.utcnow()
                 print("Took {0} seconds".format((end_time - start_time).total_seconds()))
@@ -123,16 +115,14 @@ class EncounterJob(PipelineUtils):
                 for row in collected:
                     patient_ids.append(row["person_id"])
                 print("CDC: # Patient IDs in Microbatch --> ", len(patient_ids))
-                 # ingest all components
-                obs_with_encounter = self.ingest_obs_with_encounter(patient_ids, 'patient_id') 
-                obs_without_encounter = self.ingest_obs_without_encounter(patient_ids)
+
+                # ingest all components
+                all_obs = self.ingest_obs_with_encounter(patient_ids, 'patient_id') \
+                    .union(self.ingest_obs_without_encounter(patient_ids))
                 orders = self.ingest_orders(patient_ids, 'patient_id')
-                # union obs and join
-                all_obs = obs_with_encounter.union(obs_without_encounter)
-                obs_orders = EncounterHelper.join_obs_orders(all_obs,orders)
 
                 # upsert to delta lake
-                self.sinkFlatObsToDelta(obs_orders,0)
+                self.sinkFlatObsToDelta(EncounterHelper.join_obs_orders(all_obs,orders),0)
 
                 end_time = datetime.datetime.utcnow()
                 print("Took {0} seconds".format((end_time - start_time).total_seconds()))
