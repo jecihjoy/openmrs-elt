@@ -19,20 +19,22 @@ class EncounterJob(PipelineUtils):
             'fetchsize': 100000,
             'lowerBound': 1,
             'upperBound': 300000000,
-            'numPartitions': 5000})
+            'numPartitions': 5000})\
+            .repartition(100,f.col("patient_id"), f.col("encounter_id"))
         return EncounterHelper.sanitize_obs(obs)
 
     # responsible for ingesting obs with null encounters
     def ingest_obs_without_encounter(self):
         obs = super().getDataFromMySQL('obs_with_null_encounter', {
             'partitionColumn': 'obs_id',
-            'fetchsize': 50000,
+            'fetchsize': 65000,
             'lowerBound': 1,
-            'upperBound': 300000000,
+            'upperBound': 9300000,
             'numPartitions': 5000}) \
             .withColumn('encounter_id', f.col('obs_id') + 10000000000) \
             .withColumn('order_id', f.lit('null')) \
-            .withColumn('order_concept_id', f.lit('null'))
+            .withColumn('order_concept_id', f.lit('null'))\
+            .repartition(100,f.col("patient_id"), f.col("encounter_id"))
         return EncounterHelper.sanitize_obs(obs)
 
     # responsible for ingesting orders
@@ -41,8 +43,9 @@ class EncounterJob(PipelineUtils):
             'partitionColumn': 'order_id',
             'fetchsize': 5083,
             'lowerBound': 1,
-            'upperBound': 124000,
-            'numPartitions': 24})
+            'upperBound': 300000,
+            'numPartitions': 24})\
+            .repartition(100,f.col("patient_id"), f.col("encounter_id"))
         return EncounterHelper.sanitize_orders(orders)
 
     # responsible for saving and optimizing delta tables

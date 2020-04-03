@@ -17,3 +17,9 @@ config/config.json
 /.vscode/*
 .env
 checkpoint/*
+
+.ivy2
+.jupyter
+.local
+.cache
+.ipython
