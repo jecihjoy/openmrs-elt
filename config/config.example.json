@@ -15,8 +15,8 @@
       "spark.driver.maxResultSize": "20g",
       "spark.executor.heartbeatInterval":"10000000",
       "spark.network.timeout": "10000000",
-      "spark.sql.shuffle.partitions": 1000,
       "spark.sql.dynamicPartitionPruning.enabled": "true",
+      "spark.local.dir":"/tmp/elt/spark-temp",
       "spark.executor.extraJavaOptions": "-XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:+CMSPermGenSweepingEnabled -XX:+ScavengeBeforeFullGC -XX:+CMSScavengeBeforeRemark -XX:+DisableExplicitGC",
 
       "spark.locality.wait": 100,
@@ -54,7 +54,7 @@
     "tables":{
       "flat_obs_orders":{
         "path":"flat_obs_orders.delta",
-        "partitionBy": "patient_id"
+        "partitionBy": ["patient_id","encounter_id"]
       },
       "flat_obs":{
         "path":"flat_obs.delta",
@@ -68,8 +68,7 @@
 
   },
   "mysql": {
-    "host": "localhost",
-    "port": "3306",
+    "host": "10.10.10.10:3306",
     "username": "xxxxx",
     "password": "xxxx",
     "openmrsDB": "openmrs"

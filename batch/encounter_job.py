@@ -19,22 +19,21 @@ class EncounterJob(PipelineUtils):
             'fetchsize': 100000,
             'lowerBound': 1,
             'upperBound': 300000000,
-            'numPartitions': 5000})\
-            .repartition(100,f.col("patient_id"), f.col("encounter_id"))
+            'numPartitions': 5000})
+            #.repartition(100,f.col("patient_id"), f.col("encounter_id"))
         return EncounterHelper.sanitize_obs(obs)
 
     # responsible for ingesting obs with null encounters
     def ingest_obs_without_encounter(self):
         obs = super().getDataFromMySQL('obs_with_null_encounter', {
             'partitionColumn': 'obs_id',
-            'fetchsize': 65000,
+            'fetchsize': 100000,
             'lowerBound': 1,
-            'upperBound': 9300000,
+            'upperBound': 300000000,
             'numPartitions': 5000}) \
             .withColumn('encounter_id', f.col('obs_id') + 10000000000) \
             .withColumn('order_id', f.lit('null')) \
-            .withColumn('order_concept_id', f.lit('null'))\
-            .repartition(100,f.col("patient_id"), f.col("encounter_id"))
+            .withColumn('order_concept_id', f.lit('null'))
         return EncounterHelper.sanitize_obs(obs)
 
     # responsible for ingesting orders
@@ -44,8 +43,7 @@ class EncounterJob(PipelineUtils):
             'fetchsize': 5083,
             'lowerBound': 1,
             'upperBound': 300000,
-            'numPartitions': 24})\
-            .repartition(100,f.col("patient_id"), f.col("encounter_id"))
+            'numPartitions': 24})
         return EncounterHelper.sanitize_orders(orders)
 
     # responsible for saving and optimizing delta tables
@@ -56,7 +54,8 @@ class EncounterJob(PipelineUtils):
         df\
             .repartition(f.col("patient_id"), f.col("encounter_id"))\
             .write.format("delta").mode("overwrite")\
-            .partitionBy(tableConfig["partitionBy"]).save(tableConfig["path"])
+            .save(tableConfig["path"])
+            #.partitionBy(tableConfig["partitionBy"]).save(tableConfig["path"])
         #super().spark.sql("OPTIMIZE tableName ZORDER BY (my_col)")
 
     # start spark job
