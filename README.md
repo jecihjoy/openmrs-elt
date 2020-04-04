@@ -1,9 +1,9 @@
 # Openmrs ELT Pipeline
 
-The goal of this tool is to provide batch abd near-realtime transformation of OpenMRS data for analytics or data science workflows. This project demonstrates how to perform batch and streaming process for generating flat_obs i.e Extract part of the ELT. 
-Data is extracted from OpenMRS and stored in delta lake i.e flat_obs
+The goal of this tool is to provide batch abd near-realtime transformation of OpenMRS data for analytics or data science workflows. This project demonstrates how to perform batch and streaming process for generating flat_obs i.e Extract part of the ELT.  
 
-- stream processing is becoming a bigger part of Openmrs data landscape
+* Batch - Data is extracted from OpenMRS and stored in delta lake (tables).
+* Streaming - incremental updates are captured then streamed to the delta tables 
 
 ## Getting started
 
@@ -32,22 +32,16 @@ pip install kazoo
 mysql db_name < views/*.sql
 ```
 
-### 4. Execute the batch job as demonstrated in [Jupyter notebook](batch-example.ipynb)
+### 4. Execute the batch job as demonstrated below
 
 ```
-jupyter notebook example.ipynb
-```
- Alternatively you can execute the batch_job.py script
-
- ```
 python3 batch_job.py
 
 ```
 
 
-
 ### 5. Execute the streaming job - use Airflow to Schedule
-Before executing this script, please ensure you deploy debezium/kafka cluster (OpenMRS CDC) demonstrated in this project: TODO
+Before executing this script, please ensure you deploy debezium/kafka cluster (OpenMRS CDC) demonstrated in [CDC](cdc/README) 
 
 ```
 python3 streaming_job.py
