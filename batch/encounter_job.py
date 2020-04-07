@@ -48,14 +48,18 @@ class EncounterJob(PipelineUtils):
 
     # responsible for saving and optimizing delta tables
     def save_as_delta_table(self, df, table):
-        # TODO make this configurable
         deltaConfig = super().getConfig()['delta']
         tableConfig = deltaConfig['tables'][table]
-        df\
-            .repartition(f.col("patient_id"), f.col("encounter_id"))\
-            .write.format("delta").mode("overwrite")\
-            .save(tableConfig["path"])
-            #.partitionBy(tableConfig["partitionBy"]).save(tableConfig["path"])
+        df=df.repartition(f.col("patient_id"), f.col("encounter_id"))
+
+        if len(tableConfig["partitionBy"]) > 0:
+            df.write.format("delta").mode("overwrite")\
+                .partitionBy(tableConfig["partitionBy"])\
+                .save(tableConfig["path"])
+        else:
+            df.write.format("delta").mode("overwrite")\
+                .save(tableConfig["path"])
+
         #super().spark.sql("OPTIMIZE tableName ZORDER BY (my_col)")
 
     # start spark job
