@@ -54,15 +54,15 @@
     "tables":{
       "flat_obs_orders":{
         "path":"flat_obs_orders.delta",
-        "partitionBy": ["patient_id","encounter_id"]
+        "partitionBy": ["patient_id"]
       },
       "flat_obs":{
         "path":"flat_obs.delta",
-        "partitionBy": ["patient_id","encounter_id"]
+        "partitionBy": ["patient_id"]
       },
       "flat_orders":{
         "path":"flat_orders.delta",
-        "partitionBy": ["patient_id","encounter_id"]
+        "partitionBy": ["patient_id"]
       }
     }
 
