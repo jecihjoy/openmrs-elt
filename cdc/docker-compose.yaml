@@ -15,6 +15,7 @@ services:
     volumes:
         - ./mysql.cnf:/etc/mysql/conf.d/custom.cnf
         - ./dbdump:/docker-entrypoint-initdb.d
+        - ./data:/var/lib/mysql
 
   openmrs:
     restart: "always"
@@ -48,13 +49,10 @@ services:
     ports:
      - 9092:9092
      - 9999:9999
-    expose:
-     - 9092
-     - 9999
     depends_on:
      - zookeeper
     environment:
-     - ADVERTISED_HOST_NAME=0.0.0.0 # Important - Please use your host IP to avoid socket error
+     - ADVERTISED_HOST_NAME=192.168.0.105 # Important - Please use your host IP to avoid socket error
      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
      - KAFKA_COMPRESSION_TYPE=gzip
      - KAFKA_NUM_PARTITIONS=8
@@ -66,15 +64,17 @@ services:
   connect:
     image: debezium/connect:${DEBEZIUM_VERSION}
     container_name: kafka-connect
-    network_mode: host
+   # network_mode: host
+    ports:
+     - "8083:8083"
     restart: always
     depends_on:
      - kafka
     environment:
      - BOOTSTRAP_SERVERS=kafka:9092
      - GROUP_ID=1
-     - HOST_NAME=0.0.0.0  # Important - Please use your host IP to avoid socket error
-     - ADVERTISED_HOST_NAME=0.0.0.0 # Important - Please use your host IP to avoid socket error
+     #- HOST_NAME=0.0.0.0  # Important - Please use your host IP to avoid socket error
+     #- ADVERTISED_HOST_NAME=0.0.0.0 # Important - Please use your host IP to avoid socket error
      - REST_PORT=8083
      - CONFIG_STORAGE_TOPIC=my_connect_configs
      - OFFSET_STORAGE_TOPIC=my_connect_offsets
@@ -90,7 +90,7 @@ services:
     environment:
       KAFKA_BROKERCONNECT: "kafka:9092"
       JVM_OPTS: "-Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
-    depends_on:
+    depends_on: 
       - "kafka"
 
   akhq:

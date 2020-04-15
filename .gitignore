@@ -15,6 +15,7 @@ config/config.json
 /obs job binlog fetch.ipynb
 /obs job using obs_with_encounter.ipynb
 /.vscode/*
+cdc/data
 .env
 checkpoint/*
 

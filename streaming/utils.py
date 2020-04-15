@@ -17,8 +17,8 @@ class StreamingUtils:
                     from_offsets[topic_partion] = offset
             print("Previous offset -->", from_offsets)
             return from_offsets
-        except:
-            print("An unexpected error occurred while reading offset")
+        except Exception as e:
+            print("An unexpected error occurred while reading offset", e)
             pass
 
     @staticmethod

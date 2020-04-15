@@ -52,10 +52,15 @@ class EncounterJob(PipelineUtils):
     # Function to upsert flat_bs microBatchOutputDF into Delta Lake table using merge
     @staticmethod
     def sinkFlatObsToDelta(microbatch, batchId):
-        DeltaUtils.upsertMicroBatchToDelta("flat_obs_orders", # delta tablename
-                                          microbatch, # microbatch
-                                          "table.encounter_id = updates.encounter_id" # where clause condition
-                                          )
+        try:
+            DeltaUtils.upsertMicroBatchToDelta("flat_obs_orders", # delta tablename
+                                            microbatch, # microbatch
+                                            "table.encounter_id = updates.encounter_id" # where clause condition
+                                            )
+        except Exception as e:
+            print("An unexpected error occurred while sinking FlatObs microbatch", e)
+            raise
+
     @staticmethod
     def storeOffsetRanges(rdd):
         if not rdd.isEmpty():
@@ -97,8 +102,8 @@ class EncounterJob(PipelineUtils):
                 print("Took {0} seconds".format((end_time - start_time).total_seconds()))
 
 
-        except:
-            print("An unexpected error occurred while upserting encounter microbatch")
+        except Exception as e:
+            print("An unexpected error occurred while upserting encounter microbatch", e)
             raise
     
     # responsible for rebuilding changed data for patient/s
@@ -127,8 +132,8 @@ class EncounterJob(PipelineUtils):
                 end_time = datetime.datetime.utcnow()
                 print("Took {0} seconds".format((end_time - start_time).total_seconds()))
                 
-        except:
-            print("An unexpected error occurred while upserting patient microbatch")
+        except Exception as e:
+            print("An unexpected error occurred while upserting patient microbatch", e)
             raise
 
     # responsible for deleting voided encounters
@@ -151,8 +156,8 @@ class EncounterJob(PipelineUtils):
                 end_time = datetime.datetime.utcnow()
                 print("Took {0} seconds".format((end_time - start_time).total_seconds()))
 
-        except:
-            print("An unexpected error occurred while voiding encounter microbatch")
+        except Exception as e:
+            print("An unexpected error occurred while voiding encounter microbatch", e)
             raise
 
     # start spark streaming job
