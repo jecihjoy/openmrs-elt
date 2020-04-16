@@ -13,6 +13,7 @@ from common.utils import PipelineUtils
 from common.encounter_helper import EncounterHelper
 from common.delta import DeltaUtils
 from streaming.utils import StreamingUtils
+from common.cassandra import CassandraUtils
 
 
 class EncounterJob(PipelineUtils):
@@ -60,7 +61,7 @@ class EncounterJob(PipelineUtils):
                                                 "table.encounter_id = updates.encounter_id" # where clause condition
                                                 )
             elif db=="cassandra":
-                PipelineUtils.sinkToCassandra(microbatch, "flat_obs_orders", mode="append")
+                CassandraUtils.sinkToCassandra(microbatch, "flat_obs_orders", mode="append")
         except Exception as e:
             print("An unexpected error occurred while sinking FlatObs microbatch", e)
             raise
@@ -71,6 +72,20 @@ class EncounterJob(PipelineUtils):
             StreamingUtils.save_offsets(rdd)
         return rdd
 
+    @staticmethod
+    def voidFlatObs(encounter_ids):
+        try:
+            db = PipelineUtils.getConfig()['storage']['db']
+            encounter_ids=','.join(map(str, encounter_ids))
+            if db=="delta":
+                deltaTable = DeltaUtils.getDeltaTable("flat_obs_orders")
+                deltaTable.delete("encounter_id IN ({0})".format(encounter_ids))
+            elif db=="cassandra":
+                CassandraUtils.deleteFromCassandra("flat_obs_orders",encounter_ids)
+                    
+        except Exception as e:
+            print("An unexpected error occurred while sinking FlatObs microbatch", e)
+            raise
 
     # responsible for rebuilding changed encounter data
     def upsert_encounter_microbatch(self, rdd):
@@ -147,6 +162,7 @@ class EncounterJob(PipelineUtils):
         except Exception as e:
             print("An unexpected error occurred while upserting patient microbatch", e)
             raise
+    
 
     # responsible for deleting voided encounters
     def void_encounter_microbatch(self, rdd):
@@ -162,9 +178,7 @@ class EncounterJob(PipelineUtils):
                 for row in collected:
                     encounter_ids.append(row["encounters"])
                 print("CDC: # Encounter IDs in Microbatch --> ", records)
-                encounter_ids=','.join(map(str, encounter_ids))
-                deltaTable = DeltaUtils.getDeltaTable("flat_obs_orders")
-                deltaTable.delete("encounter_id IN ({0})".format(encounter_ids))
+                self.voidFlatObs(encounter_ids)
                 end_time = datetime.datetime.utcnow()
                 print("Took {0} seconds".format((end_time - start_time).total_seconds()))
 

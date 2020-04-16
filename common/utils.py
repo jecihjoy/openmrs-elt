@@ -94,27 +94,3 @@ class PipelineUtils:
             globals()['KazooSingletonInstance'] = KazooClient(zkConfig['servers'])
             globals()['KazooSingletonInstance'].start()
         return globals()['KazooSingletonInstance']
-
-    @staticmethod
-    def sourceFromCassandra(self, table):
-        return self.spark.read\
-            .format("org.apache.spark.sql.cassandra")\
-            .options(table=table, keyspace="openmrs")\
-            .load()
-
-    @staticmethod
-    def sinkToCassandra(df, table, mode="append"):
-        start_time = datetime.utcnow()
-        if mode=="append":
-            df.write.format("org.apache.spark.sql.cassandra")\
-                        .options(table=table, keyspace="elt")\
-                        .mode("append")\
-                        .save()
-        else:
-            df.write.format("org.apache.spark.sql.cassandra")\
-                        .options(table=table, keyspace="elt")\
-                        .option("confirm.truncate", "true")\
-                        .mode("overwrite")\
-                        .save()
-        end_time = datetime.utcnow()
-        print("Took {0} minutes to sink to cassandra".format((end_time - start_time).total_seconds()/60))

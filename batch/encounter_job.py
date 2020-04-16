@@ -9,6 +9,7 @@ from pyspark import SparkContext
 import pyspark.sql.functions as f
 from common.utils import PipelineUtils
 from common.encounter_helper import EncounterHelper
+from common.cassandra import CassandraUtils
 
 class EncounterJob(PipelineUtils):
 
@@ -58,7 +59,7 @@ class EncounterJob(PipelineUtils):
                 .save(tableConfig["path"])
 
         elif config["db"]=="cassandra":
-            super().sinkToCassandra(df.repartition(f.col("patient_id"),f.col("encounter_id")), 
+            CassandraUtils.sinkToCassandra(df.repartition(f.col("patient_id"),f.col("encounter_id")), 
                                     table,
                                      mode="overwrite")
 
