@@ -47,18 +47,21 @@ class EncounterJob(PipelineUtils):
         return EncounterHelper.sanitize_orders(orders)
 
     # responsible for saving and optimizing delta tables
-    def save_as_delta_table(self, df, table):
-        deltaConfig = super().getConfig()['delta']
-        tableConfig = deltaConfig['tables'][table]
-        df=df.repartition(f.col("patient_id"))
-
-        if len(tableConfig["partitionBy"]) > 0:
-            df.write.format("delta").mode("overwrite")\
+    def sinkBatch(self, df, table):
+        config = super().getConfig()['storage']
+        tableConfig = config['tables'][table]
+        if config["db"]=="delta":
+             df\
+                .repartition(f.col("patient_id"))\
+                .write.format("delta").mode("overwrite")\
                 .partitionBy(tableConfig["partitionBy"])\
                 .save(tableConfig["path"])
-        else:
-            df.write.format("delta").mode("overwrite")\
-                .save(tableConfig["path"])
+
+        elif config["db"]=="cassandra":
+            super().sinkToCassandra(df.repartition(f.col("patient_id"),f.col("encounter_id")), 
+                                    table,
+                                     mode="overwrite")
+
 
         #super().spark.sql("OPTIMIZE tableName ZORDER BY (my_col)")
 
@@ -69,19 +72,24 @@ class EncounterJob(PipelineUtils):
         print("---Encounter Batch Started--- ")
         print("Starting Time: " + time.ctime())
 
-        # ingest all components
-        orders = self.ingest_orders()
+        try:
 
-        # union obs and join
-        all_obs = self.ingest_obs_with_encounter().union(self.ingest_obs_without_encounter())
+            # ingest all components
+            orders = self.ingest_orders()
 
-   
-        # sink to delta
-        self.save_as_delta_table(EncounterHelper.join_obs_orders(all_obs,orders),'flat_obs_orders' )
+            # union obs and join
+            all_obs = self.ingest_obs_with_encounter().union(self.ingest_obs_without_encounter())
+    
+            # sink to delta/cassandra
+            self.sinkBatch(EncounterHelper.join_obs_orders(all_obs,orders),'flat_obs_orders' )
+
+        except Exception as e:
+            print("An unexpected error occurred: ", e)
+            raise 
 
         # uncomment to save individual tables
-        #self.save_as_delta_table(all_obs, 'flat_obs')
-        #self.save_as_delta_table(orders, 'flat_orders')
+        #self.sinkBatch(all_obs, 'flat_obs')
+        #self.sinkBatch(orders, 'flat_orders')
         end_time = datetime.utcnow()
         print("Batch Ending Time: " + time.ctime())
         print("Took {0} minutes".format((end_time - start_time).total_seconds()/60))

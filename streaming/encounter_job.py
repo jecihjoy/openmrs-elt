@@ -49,14 +49,18 @@ class EncounterJob(PipelineUtils):
         orders = super().getDataFromMySQL(query,None)             
         return EncounterHelper.sanitize_orders(orders)
 
-    # Function to upsert flat_bs microBatchOutputDF into Delta Lake table using merge
+    # Function to upsert flat_bs microBatchOutputDF into Delta Lake table / cassandra using merge
     @staticmethod
-    def sinkFlatObsToDelta(microbatch, batchId):
+    def sinkFlatObs(microbatch, batchId):
         try:
-            DeltaUtils.upsertMicroBatchToDelta("flat_obs_orders", # delta tablename
-                                            microbatch, # microbatch
-                                            "table.encounter_id = updates.encounter_id" # where clause condition
-                                            )
+            db = PipelineUtils.getConfig()['storage']['db']
+            if db=="delta":
+                DeltaUtils.upsertMicroBatchToDelta("flat_obs_orders", # delta tablename
+                                                microbatch, # microbatch
+                                                "table.encounter_id = updates.encounter_id" # where clause condition
+                                                )
+            elif db=="cassandra":
+                PipelineUtils.sinkToCassandra(microbatch, "flat_obs_orders", mode="append")
         except Exception as e:
             print("An unexpected error occurred while sinking FlatObs microbatch", e)
             raise
@@ -75,28 +79,36 @@ class EncounterJob(PipelineUtils):
             collected = rdd.collect()
             records = len(collected) 
 
+           
             if records> 0:
                 start_time = datetime.datetime.utcnow()
                 encounter_ids = []
-                person_ids = []
+                patient_ids = []
                 
                 print("---Upserting Encounter Micro-Batch--- ")
                 print("Starting Time: " + time.ctime())
                 for person in collected:
-                    person_ids.append(person["person_id"])
+                    patient_ids.append(person["person_id"])
                     for encounter in person["encounters"]:
                         encounter_ids.append(encounter)
 
-                print("CDC: # Patient IDs in Microbatch --> ", len(person_ids))
+                print("CDC: # Patient IDs in Microbatch --> ", len(patient_ids))
                 print("CDC: # Encounter IDs in Microbatch --> ", len(encounter_ids))
-
-                # ingest all components
-                all_obs = self.ingest_obs_with_encounter(encounter_ids, 'encounter_id')\
-                    .union(self.ingest_obs_without_encounter(person_ids))
-                orders = self.ingest_orders(encounter_ids, 'encounter_id')
                 
-                # upsert to delta lake
-                self.sinkFlatObsToDelta(EncounterHelper.join_obs_orders(all_obs,orders),0)
+                if len(encounter_ids)==0:
+                    # ingest all components by patient id
+                    all_obs = self.ingest_obs_with_encounter(patient_ids, 'patient_id') \
+                        .union(self.ingest_obs_without_encounter(patient_ids))
+                    orders = self.ingest_orders(patient_ids, 'patient_id')
+                    # upsert to delta lake
+                    self.sinkFlatObs(EncounterHelper.join_obs_orders(all_obs,orders),0)
+                else:
+                    # ingest all components by patient id and enc id
+                    all_obs = self.ingest_obs_with_encounter(encounter_ids, 'encounter_id')\
+                        .union(self.ingest_obs_without_encounter(patient_ids))
+                    orders = self.ingest_orders(encounter_ids, 'encounter_id')
+                    # upsert to delta lake
+                    self.sinkFlatObs(EncounterHelper.join_obs_orders(all_obs,orders),0)
 
                 end_time = datetime.datetime.utcnow()
                 print("Took {0} seconds".format((end_time - start_time).total_seconds()))
@@ -126,8 +138,8 @@ class EncounterJob(PipelineUtils):
                     .union(self.ingest_obs_without_encounter(patient_ids))
                 orders = self.ingest_orders(patient_ids, 'patient_id')
 
-                # upsert to delta lake
-                self.sinkFlatObsToDelta(EncounterHelper.join_obs_orders(all_obs,orders),0)
+                # upsert
+                self.sinkFlatObs(EncounterHelper.join_obs_orders(all_obs,orders),0)
 
                 end_time = datetime.datetime.utcnow()
                 print("Took {0} seconds".format((end_time - start_time).total_seconds()))

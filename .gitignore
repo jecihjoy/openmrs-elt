@@ -18,6 +18,7 @@ config/config.json
 cdc/data
 .env
 checkpoint/*
+/cassandra_data
 
 .ivy2
 .jupyter

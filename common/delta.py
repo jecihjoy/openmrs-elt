@@ -5,7 +5,7 @@ from delta.tables import * # ignore pylint error
 class DeltaUtils:
     @staticmethod
     def getDeltaTable(table):
-        deltaConfig = PipelineUtils.getConfig()['delta']
+        deltaConfig = PipelineUtils.getConfig()['storage']
         path=deltaConfig['tables'][table]["path"]
         spark = PipelineUtils.getSpark()
         return DeltaTable.forPath(spark, path)
