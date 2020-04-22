@@ -58,7 +58,7 @@ class EncounterJob(PipelineUtils):
             if db=="delta":
                 DeltaUtils.upsertMicroBatchToDelta("flat_obs_orders", # delta tablename
                                                 microbatch, # microbatch
-                                                "table.encounter_id = updates.encounter_id" # where clause condition
+                                                "table.patient_id = updates.patient_id and table.encounter_id = updates.encounter_id" # where clause condition
                                                 )
             elif db=="cassandra":
                 CassandraUtils.sinkToCassandra(microbatch, "flat_obs_orders", mode="append")

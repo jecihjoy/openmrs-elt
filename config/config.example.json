@@ -36,14 +36,16 @@
       "spark.cassandra.auth.username": "cassandra",
       "spark.cassandra.auth.password": "cassandra",
 
-     "spark.cassandra.output.concurrent.writes": "1000",
-     "spark.cassandra.concurrent.reads": "512",
-     "spark.cassandra.output.batch.grouping.buffer.size": "1000",
-     "spark.cassandra.connection.keep_alive_ms": "600000000"
+      "spark.cassandra.output.concurrent.writes": "500",
+      "spark.cassandra.output.consistency.level": "ANY",
+      "spark.cassandra.output.batch.size.rows": 1,
+      "spark.cassandra.concurrent.reads": "512",
+      "spark.cassandra.output.batch.grouping.buffer.size": "1000",
+      "spark.cassandra.connection.keep_alive_ms": "600000000"
 
     },
     "streaming": {
-      "batchDuration": 20,
+      "batchDuration": 15,
       "checkpointDir": "./checkpoint/ssc"
     }
   },
