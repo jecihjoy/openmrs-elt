@@ -4,7 +4,7 @@
     "master": "local[*]",
     "packages": [
       "mysql:mysql-connector-java:8.0.19",
-      "io.delta:delta-core_2.11:0.5.0",
+      "io.delta:delta-core_2.11:0.6.0",
       "org.apache.spark:spark-sql_2.11:2.4.5",
       "org.apache.spark:spark-streaming-kafka-0-8_2.11:2.4.5",
       "com.datastax.spark:spark-cassandra-connector_2.11:2.4.3"
@@ -45,7 +45,7 @@
 
     },
     "streaming": {
-      "batchDuration": 15,
+      "batchDuration": 20,
       "checkpointDir": "./checkpoint/ssc"
     }
   },
@@ -70,7 +70,7 @@
     "tables":{
       "flat_obs_orders":{
         "path":"flat_obs_orders.delta",
-        "partitionBy": ["patient_id","encounter_id"]
+        "partitionBy": ["patient_id"]
       },
       "flat_obs":{
         "path":"flat_obs.delta",

@@ -56,10 +56,16 @@ class EncounterJob(PipelineUtils):
         try:
             db = PipelineUtils.getConfig()['storage']['db']
             if db=="delta":
+                patient_id = microbatch.select("patient_id").rdd.flatMap(lambda x: x).collect()
+                whereClause = "table.patient_id IN ({0}) AND table.encounter_id = updates.encounter_id"\
+                                    .format(','.join(map(str, patient_id)))
+                print(whereClause)
                 DeltaUtils.upsertMicroBatchToDelta("flat_obs_orders", # delta tablename
                                                 microbatch, # microbatch
-                                                "table.patient_id = updates.patient_id and table.encounter_id = updates.encounter_id" # where clause condition
+                                                whereClause # where clause condition
                                                 )
+
+
             elif db=="cassandra":
                 CassandraUtils.sinkToCassandra(microbatch, "flat_obs_orders", mode="append")
         except Exception as e:

@@ -53,7 +53,7 @@ class EncounterJob(PipelineUtils):
         tableConfig = config['tables'][table]
         if config["db"]=="delta":
              df\
-                .repartition(f.col("patient_id"))\
+                .repartition(f.col("location_id"))\
                 .write.format("delta").mode("overwrite")\
                 .partitionBy(tableConfig["partitionBy"])\
                 .save(tableConfig["path"])
