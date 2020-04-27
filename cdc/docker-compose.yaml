@@ -19,7 +19,7 @@ services:
 
   openmrs:
     restart: "always"
-    image: openmrs/openmrs-reference-application-distro:latest
+    image: openmrs/openmrs-reference-application-distro:2.9
     container_name: openmrs  
     depends_on:
       - mysql
@@ -52,7 +52,7 @@ services:
     depends_on:
      - zookeeper
     environment:
-     - ADVERTISED_HOST_NAME=192.168.0.105 # Important - Please use your host IP to avoid socket error
+     - ADVERTISED_HOST_NAME=192.168.0.104 # Important - Please use your host IP to avoid socket error
      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
      - KAFKA_COMPRESSION_TYPE=gzip
      - KAFKA_NUM_PARTITIONS=8
