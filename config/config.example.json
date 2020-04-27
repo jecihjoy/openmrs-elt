@@ -84,9 +84,9 @@
 
   },
   "mysql": {
-    "host": "10.10.10.10:3306",
-    "username": "xxxxx",
-    "password": "xxxx",
+    "host": "0.0.0.0:3306",
+    "username": "root",
+    "password": "debezium",
     "openmrsDB": "openmrs"
   }
 
