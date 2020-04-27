@@ -19,7 +19,7 @@ services:
 
   openmrs:
     restart: "always"
-    image: openmrs/openmrs-reference-application-distro:2.9
+    image: openmrs/openmrs-reference-application-distro:2.10.0
     container_name: openmrs  
     depends_on:
       - mysql
