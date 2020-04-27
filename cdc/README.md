@@ -10,7 +10,7 @@ The goal of this tool is to provide realtime downstream consumption of consumpti
 Make sure you have the latest docker and docker compose
 1. Install [Docker](http://docker.io).
 2. Install [Docker-compose](http://docs.docker.com/compose/install/).
-3. Configure /cdc/docker-compose.yaml (works as it is)
+3. Configure /cdc/docker-compose.yaml (ensure that you set the host IPs appropriately)
 
 # Dev Deployment
 You will only have to run only 3 commands to get the entire cluster running. 

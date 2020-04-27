@@ -14,25 +14,18 @@ pip install kazoo
 
 ```
 
-### 2. Configure your Mysql setting in config/config.json (**rename config.example.json to config.json**)
-```
-"mysql": {
-    "host": "127.0.0.1",
-    "port": "3306",
-    "username": "root",
-    "password": "debezium",
-    "openmrsDB": "openmrs"
-  }
+### 2. Deploy the debezium/kafka cluster (OpenMRS CDC) demonstrated in [CDC](cdc/README.md) 
 
-```
 
-### 3. Create all mysql views by executing mysql scripts in /views folder.
+### 3. Rename config/config.example.json to config/config.json and set the parameter appropriately 
+
+### 4. Check if all the MySQL views are created - if not create all mysql views by executing mysql scripts in /views folder.
 
 ```
 mysql db_name < views/*.sql
 ```
 
-### 4. Execute the batch job as demonstrated below
+### 5. Execute the batch job as demonstrated below
 
 ```
 python3 batch_job.py
@@ -40,8 +33,8 @@ python3 batch_job.py
 ```
 
 
-### 5. Execute the streaming job - use Airflow to Schedule
-Before executing this script, please ensure you deploy debezium/kafka cluster (OpenMRS CDC) demonstrated in [CDC](cdc/README) 
+### 6. Execute the streaming job - use Airflow to Schedule
+Before executing this script, please ensure you deploy debezium/kafka cluster (OpenMRS CDC) correctly demonstrated in [CDC](cdc/README) 
 
 ```
 python3 streaming_job.py
