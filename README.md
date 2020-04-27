@@ -16,8 +16,11 @@ pip install kazoo
 
 ### 2. Deploy the debezium/kafka cluster (OpenMRS CDC) demonstrated in [CDC](cdc/README.md) 
 
+Use version .9 of debezium, version 1.0 doesn't support python API
 
-### 3. Rename config/config.example.json to config/config.json and set the parameter appropriately 
+### 3. Rename config/config.example.json to config/config.json
+
+set parameters appropriately, should work using default settings
 
 ### 4. Check if all the MySQL views are created - if not create all mysql views by executing mysql scripts in /views folder.
 
