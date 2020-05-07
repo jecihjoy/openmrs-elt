@@ -1,41 +1,56 @@
+import os
+import sys
 from builtins import range
 from datetime import timedelta
 
 import airflow
 from airflow.models import DAG
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.dummy_operator import DummyOperator
 from datetime import datetime
+
+# Import the operator
+from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
+from airflow.operators.bash_operator import BashOperator
+
+# Set the path for our files.
+entry_point = os.path.join(os.environ["AIRFLOW_HOME"], "spark-jobs", "batch_job.py")
 
 default_args = {
     'owner': 'airflow',
+    'description' : 'OpenMRS ETL',
     'depends_on_past': False,
     'email': ['akendagor@ampath.or.ke'],
-    'email_on_failure': True,
-    'email_on_retry': True,
-    'start_date': datetime.now(),
-    'retries': 0,
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'start_date': datetime.now() - timedelta(minutes=20),
+    'retries': 5,
     'retry_delay': timedelta(minutes=1),
+    'dagrun_timeout':timedelta(minutes=5)
+    
 }
 
-dag = DAG(
-    dag_id='batch_job',
-    default_args=default_args,
-    schedule_interval='0 0 * * *',
-    dagrun_timeout=timedelta(minutes=60),
-)
 
-bash_command = """
-                cd /usr/local/airflow/spark-jobs/ &&\
-                python3 batch_job.py
-               """
+with DAG('batch_pipeline', schedule_interval='@daily', default_args=default_args, catchup=False ) as dag:
+  	# Define task clean, running a cleaning job.
 
-run_this = BashOperator(
-    task_id='batch_job',
-    bash_command=bash_command,
-    dag=dag,
-)
+    t1 = BashOperator(
+                task_id='print_current_date',
+                bash_command='date'
+        )
 
+    t2 = BashOperator(
+                task_id='print_job_started',
+                bash_command='echo "******* *** *** Spark Batch Job Has Started ********************"'
+        )
 
-if __name__ == "__main__":
-    dag.cli()
+    flat_obs = SparkSubmitOperator(
+        application=entry_point, 
+        verbose=True,
+        task_id='flat_obs',
+        conn_id='spark_default')
+
+    t3 = BashOperator(
+                task_id='print_hello',
+                bash_command='echo "hello world"'
+        )
+
+    t1 >> t2  >> flat_obs >> t3

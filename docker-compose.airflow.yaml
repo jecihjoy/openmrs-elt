@@ -1,71 +1,42 @@
-version: "3.7"
+version: '3.7'
 services:
-  spark-master:
-    image: spark-master:2.4.5
-    container_name: spark-master
-    hostname: spark-master
-    ports:
-      - "8080:8080"
-      - "7077:7077"
-    networks:
-      spark-network:
-        ipv4_address: 10.5.0.2
-    volumes:
-       - ./data:/data
-    environment:
-      - "SPARK_LOCAL_IP=spark-master"
-  spark-worker-1:
-    image: spark-worker:2.4.5
-    container_name: spark-worker-1
-    hostname: spark-worker-1
-    depends_on:
-      - spark-master
-    ports:
-      - "8081:8081"
-    env_file: .env
-    environment:
-      - "SPARK_LOCAL_IP=spark-worker-1"
-    networks:
-      spark-network:
-        ipv4_address: 10.5.0.3
-    volumes:
-       - ./data:/data
-  spark-worker-2:
-    image: spark-worker:2.4.5
-    container_name: spark-worker-2
-    hostname: spark-worker-2
-    depends_on:
-      - spark-master
-    ports:
-      - "8082:8081"
-    env_file: .env
-    environment:
-      - "SPARK_LOCAL_IP=spark-worker-2"
-    networks:
-      spark-network:
-        ipv4_address: 10.5.0.4
-    volumes:
-       - ./data:/data
-  airflow-server:
-    image: airflow:0.1.0
-    container_name: airflow-server
-    hostname: airflow-server
-    depends_on:
-      - spark-master
-    ports:
-      - "8089:8089"
-    env_file: .env
-    networks:
-      spark-network:
-        ipv4_address: 10.5.0.5
-    volumes:
-      - ./dags:/airflow/dags
-      - ./data:/data
-      - ./pipeline_scripts:/pipeline_scripts
-networks:
-  spark-network:
-    driver: bridge
-    ipam:
-     driver: default
-     config:
-       - subnet: 10.5.0.0/16
+    postgres:
+        image: postgres:9.6
+        container_name: postgres
+        environment:
+            - POSTGRES_USER=airflow
+            - POSTGRES_PASSWORD=airflow
+            - POSTGRES_DB=airflow
+        logging:
+            options:
+                max-size: 10m
+                max-file: "3"
+
+    webserver:
+        image: puckel/docker-airflow:latest
+        container_name: airflow
+        restart: always
+        depends_on:
+            - postgres
+        environment:
+            - LOAD_EX=n
+            - EXECUTOR=Local
+        logging:
+            options:
+                max-size: 10m
+                max-file: "3"
+        volumes:
+            - ./airflow/dags:/usr/local/airflow/dags
+            - ./requirements.txt:/requirements.txt
+            - ./:/usr/local/airflow/spark-jobs
+            - ./airflow/logs:/usr/local/airflow/logs
+        ports:
+            - "8585:8080"
+            - "4040:4040"
+        command: webserver
+        healthcheck:
+            test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+            interval: 30s
+            timeout: 30s
+            retries: 3
+
